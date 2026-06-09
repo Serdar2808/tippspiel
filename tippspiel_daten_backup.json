@@ -1,0 +1,2647 @@
+{
+  "users": [
+    {
+      "id": "u1780423860135",
+      "name": "Serdar",
+      "token": "token-6116",
+      "points": 0,
+      "exactTips": 0,
+      "tendTips": 0
+    },
+    {
+      "id": "u1780426222568",
+      "name": "Ali",
+      "token": "tok-f42b8b47582019f11dc29da0",
+      "points": 0,
+      "exactTips": 0,
+      "tendTips": 0
+    },
+    {
+      "id": "u1780465237231",
+      "name": "Nedim",
+      "token": "tok-44ba9f291d4211bddd9a8bce",
+      "points": 0,
+      "exactTips": 0,
+      "tendTips": 0
+    },
+    {
+      "id": "u1780466664697",
+      "name": "Mark St.",
+      "token": "tok-785fd8fa46b82e8b4703791f",
+      "points": 0,
+      "exactTips": 0,
+      "tendTips": 0
+    },
+    {
+      "id": "u1780466803530",
+      "name": "Christian",
+      "token": "tok-b1725662bcb09b6e98e4d88b",
+      "points": 0,
+      "exactTips": 0,
+      "tendTips": 0
+    },
+    {
+      "id": "u1780468466317",
+      "name": "Fabio",
+      "token": "tok-c7ded808a056309b306a0026",
+      "points": 0,
+      "exactTips": 0,
+      "tendTips": 0
+    },
+    {
+      "id": "u1780470254918",
+      "name": "Volker",
+      "token": "tok-960519836adecf2023ce2875",
+      "points": 0,
+      "exactTips": 0,
+      "tendTips": 0
+    },
+    {
+      "id": "u1780641042849",
+      "name": "Viktor",
+      "token": "tok-04c1bb7b425caa8634c5d0b1",
+      "points": 0,
+      "exactTips": 0,
+      "tendTips": 0
+    },
+    {
+      "id": "u1780641105129",
+      "name": "Rachid",
+      "token": "tok-be7747efe0707da2bbe81d0f",
+      "points": 0,
+      "exactTips": 0,
+      "tendTips": 0
+    },
+    {
+      "id": "u1780642624420",
+      "name": "Svenja",
+      "token": "tok-ae20486da002a8d0b439b50e",
+      "points": 0,
+      "exactTips": 0,
+      "tendTips": 0
+    },
+    {
+      "id": "u1780646372545",
+      "name": "Julio",
+      "token": "tok-7be6eaa6c4b2eade3c0d023b",
+      "points": 0,
+      "exactTips": 0,
+      "tendTips": 0
+    },
+    {
+      "id": "u1780649658016",
+      "name": "Max",
+      "token": "tok-4683a7645f7e22b3e4d521d8",
+      "points": 0,
+      "exactTips": 0,
+      "tendTips": 0
+    },
+    {
+      "id": "u1780650857113",
+      "name": "Nadim",
+      "token": "tok-67b3391cc87c8931614075c0",
+      "points": 0,
+      "exactTips": 0,
+      "tendTips": 0
+    },
+    {
+      "id": "u1780907415022",
+      "name": "Melina",
+      "token": "tok-f60d20f0845786b8b1172d8c",
+      "points": 0,
+      "exactTips": 0,
+      "tendTips": 0
+    }
+  ],
+  "matches": [
+    {
+      "id": "m1",
+      "type": "group",
+      "group": "A",
+      "teamA": "Mexiko",
+      "teamB": "Südafrika",
+      "kickoff": 1781204400000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m2",
+      "type": "group",
+      "group": "A",
+      "teamA": "Südkorea",
+      "teamB": "Tschechien",
+      "kickoff": 1781229600000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m3",
+      "type": "group",
+      "group": "B",
+      "teamA": "Kanada",
+      "teamB": "Bosnien und Herzegowina",
+      "kickoff": 1781290800000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m4",
+      "type": "group",
+      "group": "D",
+      "teamA": "USA",
+      "teamB": "Paraguay",
+      "kickoff": 1781312400000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m5",
+      "type": "group",
+      "group": "B",
+      "teamA": "Katar",
+      "teamB": "Schweiz",
+      "kickoff": 1781377200000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m6",
+      "type": "group",
+      "group": "C",
+      "teamA": "Brasilien",
+      "teamB": "Marokko",
+      "kickoff": 1781388000000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m7",
+      "type": "group",
+      "group": "C",
+      "teamA": "Haiti",
+      "teamB": "Schottland",
+      "kickoff": 1781398800000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m8",
+      "type": "group",
+      "group": "D",
+      "teamA": "Australien",
+      "teamB": "Türkei",
+      "kickoff": 1781409600000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m9",
+      "type": "group",
+      "group": "E",
+      "teamA": "Deutschland",
+      "teamB": "Curaçao",
+      "kickoff": 1781456400000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m10",
+      "type": "group",
+      "group": "F",
+      "teamA": "Niederlande",
+      "teamB": "Japan",
+      "kickoff": 1781467200000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m11",
+      "type": "group",
+      "group": "E",
+      "teamA": "Elfenbeinküste",
+      "teamB": "Ecuador",
+      "kickoff": 1781478000000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m12",
+      "type": "group",
+      "group": "F",
+      "teamA": "Schweden",
+      "teamB": "Tunesien",
+      "kickoff": 1781488800000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m13",
+      "type": "group",
+      "group": "H",
+      "teamA": "Spanien",
+      "teamB": "Kap Verde",
+      "kickoff": 1781539200000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m14",
+      "type": "group",
+      "group": "G",
+      "teamA": "Belgien",
+      "teamB": "Ägypten",
+      "kickoff": 1781550000000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m15",
+      "type": "group",
+      "group": "H",
+      "teamA": "Saudi-Arabien",
+      "teamB": "Uruguay",
+      "kickoff": 1781560800000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m16",
+      "type": "group",
+      "group": "G",
+      "teamA": "Iran",
+      "teamB": "Neuseeland",
+      "kickoff": 1781571600000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m17",
+      "type": "group",
+      "group": "I",
+      "teamA": "Frankreich",
+      "teamB": "Senegal",
+      "kickoff": 1781636400000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m18",
+      "type": "group",
+      "group": "I",
+      "teamA": "Irak",
+      "teamB": "Norwegen",
+      "kickoff": 1781647200000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m19",
+      "type": "group",
+      "group": "J",
+      "teamA": "Argentinien",
+      "teamB": "Algerien",
+      "kickoff": 1781658000000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m20",
+      "type": "group",
+      "group": "J",
+      "teamA": "Österreich",
+      "teamB": "Jordanien",
+      "kickoff": 1781668800000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m21",
+      "type": "group",
+      "group": "K",
+      "teamA": "Portugal",
+      "teamB": "DR Kongo",
+      "kickoff": 1781715600000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m22",
+      "type": "group",
+      "group": "L",
+      "teamA": "England",
+      "teamB": "Kroatien",
+      "kickoff": 1781726400000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m23",
+      "type": "group",
+      "group": "L",
+      "teamA": "Ghana",
+      "teamB": "Panama",
+      "kickoff": 1781737200000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m24",
+      "type": "group",
+      "group": "K",
+      "teamA": "Usbekistan",
+      "teamB": "Kolumbien",
+      "kickoff": 1781748000000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m25",
+      "type": "group",
+      "group": "A",
+      "teamA": "Tschechien",
+      "teamB": "Südafrika",
+      "kickoff": 1781798400000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m26",
+      "type": "group",
+      "group": "B",
+      "teamA": "Schweiz",
+      "teamB": "Bosnien und Herzegowina",
+      "kickoff": 1781809200000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m27",
+      "type": "group",
+      "group": "B",
+      "teamA": "Kanada",
+      "teamB": "Katar",
+      "kickoff": 1781820000000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m28",
+      "type": "group",
+      "group": "A",
+      "teamA": "Mexiko",
+      "teamB": "Südkorea",
+      "kickoff": 1781830800000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m29",
+      "type": "group",
+      "group": "D",
+      "teamA": "USA",
+      "teamB": "Australien",
+      "kickoff": 1781895600000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m30",
+      "type": "group",
+      "group": "C",
+      "teamA": "Schottland",
+      "teamB": "Marokko",
+      "kickoff": 1781906400000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m31",
+      "type": "group",
+      "group": "C",
+      "teamA": "Brasilien",
+      "teamB": "Haiti",
+      "kickoff": 1781915400000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m32",
+      "type": "group",
+      "group": "D",
+      "teamA": "Türkei",
+      "teamB": "Paraguay",
+      "kickoff": 1781924400000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m33",
+      "type": "group",
+      "group": "F",
+      "teamA": "Niederlande",
+      "teamB": "Schweden",
+      "kickoff": 1781974800000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m34",
+      "type": "group",
+      "group": "E",
+      "teamA": "Deutschland",
+      "teamB": "Elfenbeinküste",
+      "kickoff": 1781985600000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m35",
+      "type": "group",
+      "group": "E",
+      "teamA": "Ecuador",
+      "teamB": "Curaçao",
+      "kickoff": 1782000000000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m36",
+      "type": "group",
+      "group": "F",
+      "teamA": "Tunesien",
+      "teamB": "Japan",
+      "kickoff": 1782014400000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m37",
+      "type": "group",
+      "group": "H",
+      "teamA": "Spanien",
+      "teamB": "Saudi-Arabien",
+      "kickoff": 1782057600000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m38",
+      "type": "group",
+      "group": "G",
+      "teamA": "Belgien",
+      "teamB": "Iran",
+      "kickoff": 1782068400000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m39",
+      "type": "group",
+      "group": "H",
+      "teamA": "Uruguay",
+      "teamB": "Kap Verde",
+      "kickoff": 1782079200000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m40",
+      "type": "group",
+      "group": "G",
+      "teamA": "Neuseeland",
+      "teamB": "Ägypten",
+      "kickoff": 1782090000000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m41",
+      "type": "group",
+      "group": "J",
+      "teamA": "Argentinien",
+      "teamB": "Österreich",
+      "kickoff": 1782147600000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m42",
+      "type": "group",
+      "group": "I",
+      "teamA": "Frankreich",
+      "teamB": "Irak",
+      "kickoff": 1782162000000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m43",
+      "type": "group",
+      "group": "I",
+      "teamA": "Norwegen",
+      "teamB": "Senegal",
+      "kickoff": 1782172800000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m44",
+      "type": "group",
+      "group": "J",
+      "teamA": "Jordanien",
+      "teamB": "Algerien",
+      "kickoff": 1782183600000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m45",
+      "type": "group",
+      "group": "K",
+      "teamA": "Portugal",
+      "teamB": "Usbekistan",
+      "kickoff": 1782234000000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m46",
+      "type": "group",
+      "group": "L",
+      "teamA": "England",
+      "teamB": "Ghana",
+      "kickoff": 1782244800000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m47",
+      "type": "group",
+      "group": "L",
+      "teamA": "Panama",
+      "teamB": "Kroatien",
+      "kickoff": 1782255600000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m48",
+      "type": "group",
+      "group": "K",
+      "teamA": "Kolumbien",
+      "teamB": "DR Kongo",
+      "kickoff": 1782266400000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m49",
+      "type": "group",
+      "group": "B",
+      "teamA": "Schweiz",
+      "teamB": "Kanada",
+      "kickoff": 1782327600000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m50",
+      "type": "group",
+      "group": "B",
+      "teamA": "Bosnien und Herzegowina",
+      "teamB": "Katar",
+      "kickoff": 1782327600000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m51",
+      "type": "group",
+      "group": "C",
+      "teamA": "Schottland",
+      "teamB": "Brasilien",
+      "kickoff": 1782338400000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m52",
+      "type": "group",
+      "group": "C",
+      "teamA": "Marokko",
+      "teamB": "Haiti",
+      "kickoff": 1782338400000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m53",
+      "type": "group",
+      "group": "A",
+      "teamA": "Tschechien",
+      "teamB": "Mexiko",
+      "kickoff": 1782349200000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m54",
+      "type": "group",
+      "group": "A",
+      "teamA": "Südafrika",
+      "teamB": "Südkorea",
+      "kickoff": 1782349200000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m55",
+      "type": "group",
+      "group": "E",
+      "teamA": "Curaçao",
+      "teamB": "Elfenbeinküste",
+      "kickoff": 1782417600000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m56",
+      "type": "group",
+      "group": "E",
+      "teamA": "Ecuador",
+      "teamB": "Deutschland",
+      "kickoff": 1782417600000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m57",
+      "type": "group",
+      "group": "F",
+      "teamA": "Japan",
+      "teamB": "Schweden",
+      "kickoff": 1782428400000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m58",
+      "type": "group",
+      "group": "F",
+      "teamA": "Tunesien",
+      "teamB": "Niederlande",
+      "kickoff": 1782428400000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m59",
+      "type": "group",
+      "group": "D",
+      "teamA": "Türkei",
+      "teamB": "USA",
+      "kickoff": 1782439200000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m60",
+      "type": "group",
+      "group": "D",
+      "teamA": "Paraguay",
+      "teamB": "Australien",
+      "kickoff": 1782439200000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m61",
+      "type": "group",
+      "group": "I",
+      "teamA": "Norwegen",
+      "teamB": "Frankreich",
+      "kickoff": 1782500400000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m62",
+      "type": "group",
+      "group": "I",
+      "teamA": "Senegal",
+      "teamB": "Irak",
+      "kickoff": 1782500400000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m63",
+      "type": "group",
+      "group": "H",
+      "teamA": "Kap Verde",
+      "teamB": "Saudi-Arabien",
+      "kickoff": 1782518400000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m64",
+      "type": "group",
+      "group": "H",
+      "teamA": "Uruguay",
+      "teamB": "Spanien",
+      "kickoff": 1782518400000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m65",
+      "type": "group",
+      "group": "G",
+      "teamA": "Neuseeland",
+      "teamB": "Belgien",
+      "kickoff": 1782529200000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m66",
+      "type": "group",
+      "group": "G",
+      "teamA": "Ägypten",
+      "teamB": "Iran",
+      "kickoff": 1782529200000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m67",
+      "type": "group",
+      "group": "L",
+      "teamA": "Panama",
+      "teamB": "England",
+      "kickoff": 1782594000000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m68",
+      "type": "group",
+      "group": "L",
+      "teamA": "Kroatien",
+      "teamB": "Ghana",
+      "kickoff": 1782594000000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m69",
+      "type": "group",
+      "group": "K",
+      "teamA": "Kolumbien",
+      "teamB": "Portugal",
+      "kickoff": 1782603000000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m70",
+      "type": "group",
+      "group": "K",
+      "teamA": "DR Kongo",
+      "teamB": "Usbekistan",
+      "kickoff": 1782603000000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m71",
+      "type": "group",
+      "group": "J",
+      "teamA": "Österreich",
+      "teamB": "Algerien",
+      "kickoff": 1782612000000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m72",
+      "type": "group",
+      "group": "J",
+      "teamA": "Argentinien",
+      "teamB": "Jordanien",
+      "kickoff": 1782612000000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m73",
+      "type": "ko",
+      "group": "Sechzehntelfinale",
+      "teamA": "TBA (Sechzehntelfinale)",
+      "teamB": "TBA (Sechzehntelfinale)",
+      "kickoff": 1782748800000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m74",
+      "type": "ko",
+      "group": "Sechzehntelfinale",
+      "teamA": "TBA (Sechzehntelfinale)",
+      "teamB": "TBA (Sechzehntelfinale)",
+      "kickoff": 1782759600000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m75",
+      "type": "ko",
+      "group": "Sechzehntelfinale",
+      "teamA": "TBA (Sechzehntelfinale)",
+      "teamB": "TBA (Sechzehntelfinale)",
+      "kickoff": 1782835200000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m76",
+      "type": "ko",
+      "group": "Sechzehntelfinale",
+      "teamA": "TBA (Sechzehntelfinale)",
+      "teamB": "TBA (Sechzehntelfinale)",
+      "kickoff": 1782846000000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m77",
+      "type": "ko",
+      "group": "Sechzehntelfinale",
+      "teamA": "TBA (Sechzehntelfinale)",
+      "teamB": "TBA (Sechzehntelfinale)",
+      "kickoff": 1782921600000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m78",
+      "type": "ko",
+      "group": "Sechzehntelfinale",
+      "teamA": "TBA (Sechzehntelfinale)",
+      "teamB": "TBA (Sechzehntelfinale)",
+      "kickoff": 1782932400000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m79",
+      "type": "ko",
+      "group": "Sechzehntelfinale",
+      "teamA": "TBA (Sechzehntelfinale)",
+      "teamB": "TBA (Sechzehntelfinale)",
+      "kickoff": 1783008000000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m80",
+      "type": "ko",
+      "group": "Sechzehntelfinale",
+      "teamA": "TBA (Sechzehntelfinale)",
+      "teamB": "TBA (Sechzehntelfinale)",
+      "kickoff": 1783018800000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m81",
+      "type": "ko",
+      "group": "Sechzehntelfinale",
+      "teamA": "TBA (Sechzehntelfinale)",
+      "teamB": "TBA (Sechzehntelfinale)",
+      "kickoff": 1783094400000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m82",
+      "type": "ko",
+      "group": "Sechzehntelfinale",
+      "teamA": "TBA (Sechzehntelfinale)",
+      "teamB": "TBA (Sechzehntelfinale)",
+      "kickoff": 1783105200000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m83",
+      "type": "ko",
+      "group": "Sechzehntelfinale",
+      "teamA": "TBA (Sechzehntelfinale)",
+      "teamB": "TBA (Sechzehntelfinale)",
+      "kickoff": 1783180800000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m84",
+      "type": "ko",
+      "group": "Sechzehntelfinale",
+      "teamA": "TBA (Sechzehntelfinale)",
+      "teamB": "TBA (Sechzehntelfinale)",
+      "kickoff": 1783191600000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m85",
+      "type": "ko",
+      "group": "Sechzehntelfinale",
+      "teamA": "TBA (Sechzehntelfinale)",
+      "teamB": "TBA (Sechzehntelfinale)",
+      "kickoff": 1783267200000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m86",
+      "type": "ko",
+      "group": "Sechzehntelfinale",
+      "teamA": "TBA (Sechzehntelfinale)",
+      "teamB": "TBA (Sechzehntelfinale)",
+      "kickoff": 1783278000000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m87",
+      "type": "ko",
+      "group": "Sechzehntelfinale",
+      "teamA": "TBA (Sechzehntelfinale)",
+      "teamB": "TBA (Sechzehntelfinale)",
+      "kickoff": 1783353600000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m88",
+      "type": "ko",
+      "group": "Sechzehntelfinale",
+      "teamA": "TBA (Sechzehntelfinale)",
+      "teamB": "TBA (Sechzehntelfinale)",
+      "kickoff": 1783364400000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m89",
+      "type": "ko",
+      "group": "Achtelfinale",
+      "teamA": "TBA (Achtelfinale)",
+      "teamB": "TBA (Achtelfinale)",
+      "kickoff": 1783526400000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m90",
+      "type": "ko",
+      "group": "Achtelfinale",
+      "teamA": "TBA (Achtelfinale)",
+      "teamB": "TBA (Achtelfinale)",
+      "kickoff": 1783537200000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m91",
+      "type": "ko",
+      "group": "Achtelfinale",
+      "teamA": "TBA (Achtelfinale)",
+      "teamB": "TBA (Achtelfinale)",
+      "kickoff": 1783612800000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m92",
+      "type": "ko",
+      "group": "Achtelfinale",
+      "teamA": "TBA (Achtelfinale)",
+      "teamB": "TBA (Achtelfinale)",
+      "kickoff": 1783623600000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m93",
+      "type": "ko",
+      "group": "Achtelfinale",
+      "teamA": "TBA (Achtelfinale)",
+      "teamB": "TBA (Achtelfinale)",
+      "kickoff": 1783699200000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m94",
+      "type": "ko",
+      "group": "Achtelfinale",
+      "teamA": "TBA (Achtelfinale)",
+      "teamB": "TBA (Achtelfinale)",
+      "kickoff": 1783710000000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m95",
+      "type": "ko",
+      "group": "Achtelfinale",
+      "teamA": "TBA (Achtelfinale)",
+      "teamB": "TBA (Achtelfinale)",
+      "kickoff": 1783785600000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m96",
+      "type": "ko",
+      "group": "Achtelfinale",
+      "teamA": "TBA (Achtelfinale)",
+      "teamB": "TBA (Achtelfinale)",
+      "kickoff": 1783796400000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m97",
+      "type": "ko",
+      "group": "Viertelfinale",
+      "teamA": "TBA (Viertelfinale)",
+      "teamB": "TBA (Viertelfinale)",
+      "kickoff": 1784131200000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m98",
+      "type": "ko",
+      "group": "Viertelfinale",
+      "teamA": "TBA (Viertelfinale)",
+      "teamB": "TBA (Viertelfinale)",
+      "kickoff": 1784142000000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m99",
+      "type": "ko",
+      "group": "Viertelfinale",
+      "teamA": "TBA (Viertelfinale)",
+      "teamB": "TBA (Viertelfinale)",
+      "kickoff": 1784217600000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m100",
+      "type": "ko",
+      "group": "Viertelfinale",
+      "teamA": "TBA (Viertelfinale)",
+      "teamB": "TBA (Viertelfinale)",
+      "kickoff": 1784228400000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m101",
+      "type": "ko",
+      "group": "Halbfinale",
+      "teamA": "TBA (Halbfinale)",
+      "teamB": "TBA (Halbfinale)",
+      "kickoff": 1784401200000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m102",
+      "type": "ko",
+      "group": "Halbfinale",
+      "teamA": "TBA (Halbfinale)",
+      "teamB": "TBA (Halbfinale)",
+      "kickoff": 1784487600000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m103",
+      "type": "ko",
+      "group": "Spiel um Platz 3",
+      "teamA": "TBA (Spiel um Platz 3)",
+      "teamB": "TBA (Spiel um Platz 3)",
+      "kickoff": 1784833200000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    },
+    {
+      "id": "m104",
+      "type": "ko",
+      "group": "Finale",
+      "teamA": "TBA (Finale)",
+      "teamB": "TBA (Finale)",
+      "kickoff": 1784919600000,
+      "resultA": null,
+      "resultB": null,
+      "finished": false
+    }
+  ],
+  "tips": [
+    {
+      "userId": "u1780423860135",
+      "matchId": "m1",
+      "tipA": null,
+      "tipB": null,
+      "points": 0
+    },
+    {
+      "userId": "u1780423860135",
+      "matchId": "m2",
+      "tipA": null,
+      "tipB": null,
+      "points": 0
+    },
+    {
+      "userId": "u1780423860135",
+      "matchId": "m3",
+      "tipA": null,
+      "tipB": null,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m1",
+      "tipA": 2,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m2",
+      "tipA": 1,
+      "tipB": 2,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m3",
+      "tipA": 0,
+      "tipB": 2,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m4",
+      "tipA": 1,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m5",
+      "tipA": 0,
+      "tipB": 3,
+      "points": 0
+    },
+    {
+      "userId": "u1780466803530",
+      "matchId": "m1",
+      "tipA": 2,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m49",
+      "tipA": 2,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m47",
+      "tipA": 0,
+      "tipB": 3,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m48",
+      "tipA": 2,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m51",
+      "tipA": 1,
+      "tipB": 2,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m52",
+      "tipA": 2,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m6",
+      "tipA": 3,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m7",
+      "tipA": 0,
+      "tipB": 2,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m8",
+      "tipA": 1,
+      "tipB": 2,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m9",
+      "tipA": 4,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m10",
+      "tipA": 3,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m11",
+      "tipA": 0,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m13",
+      "tipA": 3,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m12",
+      "tipA": 2,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m14",
+      "tipA": 3,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m15",
+      "tipA": 0,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m16",
+      "tipA": 0,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m17",
+      "tipA": 2,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m18",
+      "tipA": 0,
+      "tipB": 4,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m19",
+      "tipA": 2,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m20",
+      "tipA": 3,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m21",
+      "tipA": 2,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m22",
+      "tipA": 1,
+      "tipB": 2,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m23",
+      "tipA": 1,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m24",
+      "tipA": 0,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m25",
+      "tipA": 2,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m26",
+      "tipA": 1,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m27",
+      "tipA": 1,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m28",
+      "tipA": 2,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m29",
+      "tipA": 1,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m30",
+      "tipA": 1,
+      "tipB": 2,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m31",
+      "tipA": 3,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m32",
+      "tipA": 2,
+      "tipB": 2,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m33",
+      "tipA": 2,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m34",
+      "tipA": 5,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m35",
+      "tipA": 3,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m36",
+      "tipA": 0,
+      "tipB": 2,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m37",
+      "tipA": 4,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m38",
+      "tipA": 3,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m39",
+      "tipA": 2,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m40",
+      "tipA": 0,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m41",
+      "tipA": 1,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m42",
+      "tipA": 4,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m43",
+      "tipA": 2,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m44",
+      "tipA": 0,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m45",
+      "tipA": 3,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m46",
+      "tipA": 2,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m50",
+      "tipA": 3,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m53",
+      "tipA": 1,
+      "tipB": 2,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m54",
+      "tipA": 0,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m55",
+      "tipA": 0,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m56",
+      "tipA": 0,
+      "tipB": 3,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m57",
+      "tipA": 1,
+      "tipB": 3,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m58",
+      "tipA": 0,
+      "tipB": 2,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m59",
+      "tipA": 1,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m60",
+      "tipA": 1,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m61",
+      "tipA": 2,
+      "tipB": 2,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m62",
+      "tipA": 1,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m63",
+      "tipA": 0,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m64",
+      "tipA": 1,
+      "tipB": 3,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m65",
+      "tipA": 1,
+      "tipB": 3,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m66",
+      "tipA": 1,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m67",
+      "tipA": 0,
+      "tipB": 2,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m68",
+      "tipA": 3,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m69",
+      "tipA": 1,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m70",
+      "tipA": 0,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m71",
+      "tipA": 1,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780641042849",
+      "matchId": "m72",
+      "tipA": 3,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m1",
+      "tipA": 2,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m2",
+      "tipA": 0,
+      "tipB": 2,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m3",
+      "tipA": 0,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m4",
+      "tipA": 2,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m5",
+      "tipA": 1,
+      "tipB": 3,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m6",
+      "tipA": 3,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m7",
+      "tipA": 1,
+      "tipB": 2,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m8",
+      "tipA": 1,
+      "tipB": 2,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m9",
+      "tipA": 3,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m10",
+      "tipA": 2,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m11",
+      "tipA": 1,
+      "tipB": 2,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m12",
+      "tipA": 3,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m13",
+      "tipA": 2,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m14",
+      "tipA": 2,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m15",
+      "tipA": 1,
+      "tipB": 2,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m16",
+      "tipA": 1,
+      "tipB": 2,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m17",
+      "tipA": 3,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m18",
+      "tipA": 1,
+      "tipB": 2,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m19",
+      "tipA": 2,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m20",
+      "tipA": 2,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m21",
+      "tipA": 3,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m22",
+      "tipA": 1,
+      "tipB": 2,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m23",
+      "tipA": 2,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m24",
+      "tipA": 0,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m25",
+      "tipA": 1,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m26",
+      "tipA": 3,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m27",
+      "tipA": 1,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m28",
+      "tipA": 2,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m29",
+      "tipA": 2,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m30",
+      "tipA": 2,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m31",
+      "tipA": 4,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m32",
+      "tipA": 2,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m33",
+      "tipA": 2,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m34",
+      "tipA": 2,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m35",
+      "tipA": 1,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m36",
+      "tipA": 1,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m37",
+      "tipA": 2,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m38",
+      "tipA": 2,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m39",
+      "tipA": 1,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m40",
+      "tipA": 1,
+      "tipB": 3,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m41",
+      "tipA": 1,
+      "tipB": 2,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m42",
+      "tipA": 2,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m43",
+      "tipA": 2,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m44",
+      "tipA": 2,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m45",
+      "tipA": 3,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m46",
+      "tipA": 3,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m47",
+      "tipA": 1,
+      "tipB": 2,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m48",
+      "tipA": 2,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m49",
+      "tipA": 2,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m50",
+      "tipA": 1,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m51",
+      "tipA": 1,
+      "tipB": 3,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m52",
+      "tipA": 2,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m53",
+      "tipA": 2,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m54",
+      "tipA": 2,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m55",
+      "tipA": 1,
+      "tipB": 2,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m56",
+      "tipA": 1,
+      "tipB": 2,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m57",
+      "tipA": 1,
+      "tipB": 3,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m58",
+      "tipA": 1,
+      "tipB": 3,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m59",
+      "tipA": 2,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m60",
+      "tipA": 1,
+      "tipB": 2,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m61",
+      "tipA": 1,
+      "tipB": 2,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m62",
+      "tipA": 1,
+      "tipB": 2,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m63",
+      "tipA": 1,
+      "tipB": 2,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m64",
+      "tipA": 1,
+      "tipB": 3,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m65",
+      "tipA": 0,
+      "tipB": 2,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m66",
+      "tipA": 2,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m67",
+      "tipA": 1,
+      "tipB": 3,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m68",
+      "tipA": 2,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m69",
+      "tipA": 1,
+      "tipB": 3,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m70",
+      "tipA": 0,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m71",
+      "tipA": 2,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780642624420",
+      "matchId": "m72",
+      "tipA": 2,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780907415022",
+      "matchId": "m1",
+      "tipA": 2,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780907415022",
+      "matchId": "m2",
+      "tipA": 1,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780907415022",
+      "matchId": "m3",
+      "tipA": 1,
+      "tipB": 2,
+      "points": 0
+    },
+    {
+      "userId": "u1780907415022",
+      "matchId": "m4",
+      "tipA": 2,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780907415022",
+      "matchId": "m5",
+      "tipA": 0,
+      "tipB": 3,
+      "points": 0
+    },
+    {
+      "userId": "u1780907415022",
+      "matchId": "m6",
+      "tipA": 2,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780907415022",
+      "matchId": "m7",
+      "tipA": 0,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780907415022",
+      "matchId": "m8",
+      "tipA": 0,
+      "tipB": 2,
+      "points": 0
+    },
+    {
+      "userId": "u1780907415022",
+      "matchId": "m9",
+      "tipA": 3,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780907415022",
+      "matchId": "m10",
+      "tipA": 2,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780907415022",
+      "matchId": "m11",
+      "tipA": 1,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780907415022",
+      "matchId": "m12",
+      "tipA": 1,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780907415022",
+      "matchId": "m13",
+      "tipA": 3,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780907415022",
+      "matchId": "m14",
+      "tipA": 2,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780907415022",
+      "matchId": "m15",
+      "tipA": 0,
+      "tipB": 2,
+      "points": 0
+    },
+    {
+      "userId": "u1780907415022",
+      "matchId": "m16",
+      "tipA": 0,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780907415022",
+      "matchId": "m17",
+      "tipA": 2,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780907415022",
+      "matchId": "m18",
+      "tipA": 0,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780907415022",
+      "matchId": "m19",
+      "tipA": 2,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780907415022",
+      "matchId": "m20",
+      "tipA": 2,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780907415022",
+      "matchId": "m21",
+      "tipA": 2,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780907415022",
+      "matchId": "m22",
+      "tipA": 1,
+      "tipB": 2,
+      "points": 0
+    },
+    {
+      "userId": "u1780907415022",
+      "matchId": "m23",
+      "tipA": 1,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780907415022",
+      "matchId": "m24",
+      "tipA": 0,
+      "tipB": 2,
+      "points": 0
+    },
+    {
+      "userId": "u1780907415022",
+      "matchId": "m25",
+      "tipA": 1,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780466803530",
+      "matchId": "m2",
+      "tipA": 1,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780466803530",
+      "matchId": "m3",
+      "tipA": 2,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780466803530",
+      "matchId": "m4",
+      "tipA": 1,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780466803530",
+      "matchId": "m5",
+      "tipA": 0,
+      "tipB": 2,
+      "points": 0
+    },
+    {
+      "userId": "u1780466803530",
+      "matchId": "m6",
+      "tipA": 1,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780466803530",
+      "matchId": "m7",
+      "tipA": 0,
+      "tipB": 2,
+      "points": 0
+    },
+    {
+      "userId": "u1780466803530",
+      "matchId": "m8",
+      "tipA": 0,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780466803530",
+      "matchId": "m9",
+      "tipA": 3,
+      "tipB": 0,
+      "points": 0
+    },
+    {
+      "userId": "u1780466803530",
+      "matchId": "m10",
+      "tipA": 1,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780646372545",
+      "matchId": "m1",
+      "tipA": 2,
+      "tipB": 1,
+      "points": 0
+    },
+    {
+      "userId": "u1780466803530",
+      "matchId": "m13",
+      "tipA": 3,
+      "tipB": 0,
+      "points": 0
+    }
+  ],
+  "reactions": [],
+  "comments": [],
+  "pushSubscriptions": [
+    {
+      "userId": "u1780470254918",
+      "subscription": {
+        "endpoint": "https://fcm.googleapis.com/fcm/send/ez841qx-PWQ:APA91bE53ZRpTZbTBOdE7NiDF-m0I-ORytHJgbBoYQLcOK9pz5a1SvqCXRqjpmX6jazUVAnZvIvTnumL-ThxeSnPnUjpafLjsXP7MyumProkoj8zZV-4afXZZhmxq8_VyoZslmkyEGT-",
+        "expirationTime": null,
+        "keys": {
+          "p256dh": "BBGaxA7EEOthCBxtXtIajuEsAIi9SiNIe8S61_eo7BdDJAkvS0pXDgC4wKXXmBzkx9kmjkrB8WAbSCJ1cS38C1A",
+          "auth": "NPdaRDPJxE5EdSJD9N4fmA"
+        }
+      },
+      "device": "android"
+    },
+    {
+      "userId": "u1780423860135",
+      "subscription": {
+        "endpoint": "https://web.push.apple.com/QOZ_HhPN9lMjxyJxtvzVVLfYiBZz5WL1RAbcUhr2bvW2bGlpHXfrNS512aWYr1v96gCx_M5sAb6pXL_87qhZUdsIDqI4enpzOQ3Xe-QN2M1LSPPu2ffoiSszBBARvHOJRz8xST1vYV9x8NlHPd_s6ssEOVshLTwrf2n1gpuUcsg",
+        "keys": {
+          "p256dh": "BKWu7L38e0gMpUute2HRleZf8gZIUNA3NV_oWjC25jYUozqrLq7YIGRNgCG8Q834YY3SfAHBRnxzyiE_ki4y28M",
+          "auth": "L4BpLPiGbH38qchmm67lyA"
+        }
+      },
+      "device": "ios"
+    },
+    {
+      "userId": "u1780646372545",
+      "subscription": {
+        "endpoint": "https://web.push.apple.com/QHfYZoPai2_BQ4ZzVCnjt-E6heAx6sKuxPgT-u-rq1u-KfpIElD3QmkKND7w8ypmn3iCe7uNpRaBcG4rFeepxx9ZtFS2r0HpBuPAzZ2DDt0m2MvzZm3xSOh_vqAVkmEFR5efSRGoTQauLtmOIBWFFEZDtlGKhvqC7jQLnTQxeAQ",
+        "keys": {
+          "p256dh": "BHC2sKr913MJo4NKNZ8lpDYj4FMD9rjn2fP0-Ao8eqIVFBCM7quRap14BJu9lEJp0zLqhGCnA71vI0SRMcFALeU",
+          "auth": "CaZZnCvGmoIduFbdRys4GQ"
+        }
+      },
+      "device": "ios"
+    },
+    {
+      "userId": "u1780466803530",
+      "subscription": {
+        "endpoint": "https://fcm.googleapis.com/fcm/send/etguqmBtbwg:APA91bGuj5oeVSq8qJf74VWhR5980d3VGHHmLt5l3w74JyNxancil9M4MarO8vkI63zgJUqSEssWHkOu83qR9fI891cA2XtPw7dljppKQNWN9IWffFjjrSM7TC842GyHSRCuV4EdctCS",
+        "expirationTime": null,
+        "keys": {
+          "p256dh": "BBEaX25BuSCnr7-old76e6wdfMkQJi1UqlB2BouIa4hPCXSRKHqun1Y0maq-7VJlD5sArE-7NwxeI72ATe0J3Dc",
+          "auth": "GOFIdCeqoaYq_pif9GsXgA"
+        }
+      },
+      "device": "android"
+    },
+    {
+      "userId": "u1780907415022",
+      "subscription": {
+        "endpoint": "https://web.push.apple.com/QGuX3uqH_Sm2keIxbtiJD66O1qzjSGqS3CpXhjR2zYqF07KoSlZaSAokavNp_TQBFb1DJCV_Y3TlGMFjiXVqn9gUzZrVoyLjDBatvVTs524QL94ewKaxa-ACH7APwllgwZ640plUrP08M6viznsHx4FbnVdz_6_4tG6XMl7wQl8",
+        "keys": {
+          "p256dh": "BI3fttoNNbcPkeuqxc4jgtUXMmri7gWy0A6MtFWe1TAjiY___-t_V_0SYv1t4J4IE9Er6iZzYSfOoniXg7xSMys",
+          "auth": "5lomGOZzmAZKINfq-5ALpQ"
+        }
+      },
+      "device": "ios"
+    },
+    {
+      "userId": "u1780465237231",
+      "subscription": {
+        "endpoint": "https://fcm.googleapis.com/fcm/send/fyzVfimwYOA:APA91bEIyXn7mV9DRd3FTbhLguPtM__NJ4odR2u3ZNzh5lIYNIC440SiQRyNwy1eQFitVNaXb2p8kNQ8Ifg4biTA2g-XLwPzchRJgweEeJMvVRxFvrYnmmTRBOW7kxBv-gnu4Fs6GxXu",
+        "expirationTime": null,
+        "keys": {
+          "p256dh": "BGJu4OkISs6QtimjyLCiqfCfd6llXs_oIwo7_y_DIEtVJGeN_jaHg1MNSqn_-AsAb14y2pJEu0sInnkh20-krxM",
+          "auth": "vzS1YMNdpsC2zxoatC3kiA"
+        }
+      },
+      "device": "android"
+    },
+    {
+      "userId": "admin",
+      "subscription": {
+        "endpoint": "https://web.push.apple.com/QEKzr36qvVcaYZs5ageNysnxTeZ272ZUJAbOQJTe6CfF-xMSoGpr6IIF3afu00QAgcTFJZsKgYteisDBWzkbhoJ8ftmjoKo2PDTmuXc7RZsfMEGf7iAUsQxXL0fDEta8JuUnKyecfWKicIH5VMeaxwJ4S25IYkj2M0YvnRiCJSI",
+        "keys": {
+          "p256dh": "BCNrYS4eJFO-RT7oXrfPv3k7EhO7GAicqfV7OhcFLdpmHyHq6Pnz5Og5P9JwPZZ7ucMV8gKFV-ppq3-suIFjNgE",
+          "auth": "n49Didc5hs_Zjv-txuDBfQ"
+        }
+      },
+      "device": "ios"
+    },
+    {
+      "userId": "u1780641105129",
+      "subscription": {
+        "endpoint": "https://web.push.apple.com/QN6UT5QrVuHsjf3B2EiCV23dyQxtqme3LXHyVBIymDbtowrSfZ_nyfyCXVveNduSZT3Thi2FDFsbb1qIArBhgqjD4MXVC3X5Ii1mzOOISSKa-CAzlon-nb2XpiXZFQdfNfdG1oAGNMK-_zvJDI730iosBp0Sk6z2Wu9eN96FXQg",
+        "keys": {
+          "p256dh": "BPT9Rswf8vmbO0rKjt5PSrdFVh_shoIUDE8PwrsYoSmY56EBJmDY9coADK-hs-VCx9oOBTUogsf0m2RU_35jmbU",
+          "auth": "5Y2T3xBXVo_8rpQp_YQkJQ"
+        }
+      },
+      "device": "ios"
+    }
+  ]
+}

@@ -1,0 +1,1369 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#28004D">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Tippspiel">
+    <link rel="apple-touch-icon" href="/icon-192.png">
+    <title>WM 2026 Tippspiel</title>
+    <style>
+        :root {
+            --primary:#28004D; --accent:#FF004D; --accent-green:#ccff00;
+            --btn-green:#16a34a; --bg:#0d1117; --card-bg:#161b22;
+            --card-bg2:#1c2129; --border:#30363d; --text:#e6edf3;
+            --text-muted:#8b949e; --input-bg:#0d1117;
+        }
+        * { box-sizing: border-box; }
+        .tab-content { display:none; }
+		body { 
+			font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+			/* padding-top um den oberen Hardware-Rand erweitern */
+			padding-top:calc(65px + env(safe-area-inset-top));
+			padding-bottom:calc(65px + env(safe-area-inset-bottom));
+			margin:0;
+			background:var(--bg);
+			min-height:100vh;
+			font-size:16px;
+			color:var(--text); 
+		}
+
+		#user-header { 
+			position:fixed;
+			top:0;
+			width:100%;
+			z-index:100;
+			/* Padding-top fügt die Safe Area oben hinzu, Höhe wird um denselben Wert vergrößert */
+			padding:env(safe-area-inset-top) 15px 0 15px;
+			height:calc(56px + env(safe-area-inset-top));
+			background:var(--primary);
+			color:white;
+			border-bottom:3px solid var(--accent-green);
+			display:flex;
+			align-items:center;
+			justify-content:space-between; 
+		}
+        .card { background:var(--card-bg);padding:15px;margin:10px 12px;border-radius:12px;
+                border:1px solid var(--border);box-shadow:0 2px 8px rgba(0,0,0,.4); }
+        .card h3 { margin-top:0;color:var(--accent-green); }
+        input[type="number"],input[type="text"] { height:40px;font-size:20px;font-weight:800;
+            text-align:center;border:2px solid var(--border);border-radius:8px;margin:0 2px;
+            outline:none;padding:0;background:var(--input-bg);color:var(--text);-webkit-appearance:none; }
+        input[type="number"] { width:38px; }
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button { -webkit-appearance:none;margin:0; }
+        input[type="text"] { width:100%;font-size:15px;font-weight:600;text-align:left;padding:0 8px; }
+        input[type="number"]:focus,input[type="text"]:focus { border-color:var(--accent-green); }
+        input:disabled { background:#0d1117;color:#4d5562;border-color:#21262d; }
+        select { background:var(--input-bg);color:var(--text);border:1px solid var(--border);
+                 border-radius:8px;height:38px;padding:0 8px;font-size:14px;outline:none; }
+        button { height:40px;padding:0 14px;background:var(--btn-green);color:white;border:none;
+                 border-radius:8px;font-weight:bold;cursor:pointer;transition:filter .15s,transform .1s;white-space:nowrap; }
+        button:hover { filter:brightness(1.15); }
+        button:active { transform:scale(.95); }
+        button:disabled { background:#21262d;color:#4d5562;cursor:not-allowed;transform:none;filter:none; }
+        .btn-secondary { background:#30363d;margin-left:5px;font-size:16px;padding:0 10px; }
+        .btn-primary { background:var(--primary); }
+        .btn-danger { background:#b91c1c; }
+        table { width:100%;border-collapse:collapse;margin-top:5px;table-layout:fixed; }
+        th,td { padding:7px 3px;text-align:center;border-bottom:1px solid var(--border);color:var(--text);font-size:14px; }
+        th { color:var(--text-muted);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px; }
+        th:first-child,td:first-child { text-align:left; }
+        .bottom-nav { position:fixed;bottom:0;width:100%;display:flex;background:var(--primary);
+            z-index:100;box-shadow:0 -2px 12px rgba(0,0,0,.5);
+            padding-bottom:env(safe-area-inset-bottom);
+            align-items:flex-start; }
+        .bottom-nav button { flex:1;color:#7c5fa0;background:none;border:none;font-size:12px;cursor:pointer;border-radius:0;
+            height:65px;padding:0 2px;line-height:1.4; }
+        .bottom-nav button.active { color:white;border-top:3px solid var(--accent-green);font-weight:bold; }
+        #modal-overlay { display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+            background:rgba(0,0,0,.8);z-index:1000;align-items:center;justify-content:center;backdrop-filter:blur(4px); }
+        #modal-box { background:var(--card-bg);width:88%;max-width:420px;max-height:80%;border-radius:14px;
+            padding:20px;overflow-y:auto;position:relative;border:1px solid var(--border);box-shadow:0 20px 40px rgba(0,0,0,.6); }
+        .modal-close { position:absolute;top:14px;right:14px;background:#b91c1c;width:30px;height:30px;
+            border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center; }
+        #rules-overlay { display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+            background:rgba(0,0,0,.8);z-index:1000;align-items:center;justify-content:center;backdrop-filter:blur(4px); }
+        #rules-box { background:var(--card-bg);width:88%;max-width:420px;max-height:85%;border-radius:14px;
+            padding:20px;overflow-y:auto;position:relative;border:1px solid var(--border);box-shadow:0 20px 40px rgba(0,0,0,.6); }
+        .rules-section { margin-bottom:18px; }
+        .rules-section h4 { color:var(--accent-green);margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.5px; }
+        .rules-row { padding:6px 0;border-bottom:1px solid var(--border);font-size:14px;line-height:1.6; }
+        .rules-row:last-child { border-bottom:none; }
+        .rules-pts { font-weight:900;flex-shrink:0;width:22px;text-align:right; }
+        .filter-bar { display:flex;gap:6px;margin:4px 12px 6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none; }
+        .filter-bar::-webkit-scrollbar { display:none; }
+        .filter-btn { height:28px;padding:0 12px;background:var(--card-bg);color:var(--text-muted);
+            border:1px solid var(--border);border-radius:20px;font-size:12px;font-weight:600;
+            cursor:pointer;white-space:nowrap;flex-shrink:0;transition:.2s; }
+        .filter-btn.active { background:var(--primary);color:white;border-color:var(--primary); }
+        .filter-sep { width:1px;background:var(--border);margin:4px 2px;flex-shrink:0; }
+        #urgency-banner { display:none;margin:0 12px 8px;padding:10px 12px;
+            background:rgba(255,0,77,.1);border:1px solid var(--accent);
+            border-radius:10px;font-size:13px;color:var(--text);line-height:1.4; }
+        #tip-progress { margin:0 12px 8px; }
+        #toast { 
+			position:fixed;
+			/* Top-Wert an den neuen Header anpassen */
+			top:calc(64px + env(safe-area-inset-top));
+			left:50%;
+			transform:translateX(-50%) translateY(-10px);
+			background:var(--card-bg2);
+			color:var(--text);
+			padding:11px 18px;
+			border-radius:10px;
+			font-size:14px;
+			font-weight:600;
+			z-index:9999;
+			opacity:0;
+			transition:opacity .25s,transform .25s;
+			border:1px solid var(--border);
+			max-width:88%;
+			text-align:center;
+			pointer-events:none;
+			box-shadow:0 4px 16px rgba(0,0,0,.5); 
+		}
+        #toast.show { opacity:1;transform:translateX(-50%) translateY(0); }
+        #toast.success { border-left:4px solid var(--accent-green); }
+        #toast.error { border-left:4px solid var(--accent); }
+        .page-title { color:var(--text);margin:14px 12px 6px;font-size:20px; }
+        .pts-badge { border-radius:6px;padding:3px 9px;font-size:12px;font-weight:700;margin-left:6px;display:inline-block; }
+        .pts-3 { background:rgba(204,255,0,.15);color:#ccff00;border:1px solid rgba(204,255,0,.3); }
+        .pts-2 { background:rgba(56,189,248,.15);color:#38bdf8;border:1px solid rgba(56,189,248,.3); }
+        .pts-1 { background:rgba(251,146,60,.15);color:#fb923c;border:1px solid rgba(251,146,60,.3); }
+        .pts-0 { background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3); }
+        .stat-grid { display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px; }
+        .stat-box { background:var(--bg);border-radius:8px;padding:10px;text-align:center; }
+        .stat-val { font-size:26px;font-weight:900;color:var(--accent-green);line-height:1.1; }
+        .stat-lbl { font-size:11px;color:var(--text-muted);margin-top:2px; }
+        /* Schnelltippen */
+        #quicktip-overlay { display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+            background:var(--bg);z-index:500;overflow-y:auto;padding:12px 12px 90px; }
+        #quicktip-footer { position:fixed;bottom:0;left:0;width:100%;padding:10px 12px;
+            padding-bottom:calc(10px + env(safe-area-inset-bottom));
+            background:var(--primary);border-top:2px solid var(--accent-green);z-index:501; }
+        .qt-row { display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border); }
+        .qt-teams { flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+        .qt-input { width:34px!important;height:36px!important;font-size:18px!important;margin:0 1px!important; }
+        /* Reaktionen */
+        .reaction-btn { height:28px!important;padding:0 8px!important;font-size:13px!important;
+            background:rgba(255,255,255,.05)!important;border:1px solid var(--border)!important;
+            border-radius:20px!important;color:var(--text)!important;margin:0!important; }
+        .reaction-btn.active { background:rgba(204,255,0,.15)!important;border-color:var(--accent-green)!important; }
+        .admin-nav { display:flex;gap:6px;padding:0 12px 10px;overflow-x:auto;scrollbar-width:none; }
+        .admin-nav::-webkit-scrollbar { display:none; }
+        .admin-nav-btn { height:32px;padding:0 14px;background:var(--card-bg);color:var(--text-muted);
+            border:1px solid var(--border);border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0; }
+        .admin-nav-btn.active { background:var(--primary);color:white;border-color:var(--primary); }
+        .admin-section { display:none; }
+        @keyframes livePulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+        .live-badge { display:inline-flex;align-items:center;gap:3px;background:rgba(255,0,77,.15);
+            border:1px solid var(--accent);color:var(--accent);border-radius:20px;
+            padding:1px 8px;font-size:11px;font-weight:700;animation:livePulse 1.5s infinite; }
+        .phase-btn { height:26px;padding:0 11px;background:var(--card-bg);color:var(--text-muted);
+            border:1px solid var(--border);border-radius:20px;font-size:12px;font-weight:600;
+            cursor:pointer;white-space:nowrap;flex-shrink:0; }
+        .phase-btn.active { background:var(--primary);color:white;border-color:var(--primary); }
+        .achievement { display:inline-flex;align-items:center;gap:3px;background:rgba(204,255,0,.08);
+            border:1px solid rgba(204,255,0,.2);border-radius:20px;padding:2px 7px;
+            font-size:11px;cursor:default; }
+    </style>
+</head>
+<body>
+<div id="user-header">
+    <div id="user-info">Lade...</div>
+    <div style="display:flex;align-items:center;gap:10px;">
+        <div id="user-stats" style="display:flex;gap:12px;font-size:.85rem;"></div>
+        <button onclick="document.getElementById('rules-overlay').style.display='flex'"
+            style="background:transparent;border:1px solid rgba(255,255,255,.3);color:white;
+                   border-radius:50%;width:28px;height:28px;min-width:28px;padding:0;
+                   font-size:14px;display:flex;align-items:center;justify-content:center;">ℹ</button>
+        <button id="push-btn" onclick="requestPushPermission()" title="Benachrichtigungen"
+            style="background:transparent;border:none;color:rgba(255,255,255,.4);font-size:18px;padding:0;width:28px;height:28px;cursor:pointer;">🔔</button>
+    </div>
+</div>
+<div id="toast"></div>
+
+<!-- Tipps-Modal -->
+<div id="modal-overlay" onclick="if(event.target===this)closeModal()">
+    <div id="modal-box">
+        <button class="modal-close" onclick="closeModal()">✕</button>
+        <h3 id="modal-title" style="margin-top:0;color:var(--accent-green);font-size:15px;line-height:1.4;"></h3>
+        <div id="modal-content"></div>
+    </div>
+</div>
+
+<!-- Regeln-Modal -->
+<div id="rules-overlay" onclick="if(event.target===this)this.style.display='none'">
+    <div id="rules-box">
+        <button class="modal-close" onclick="document.getElementById('rules-overlay').style.display='none'">✕</button>
+        <h3 style="margin-top:0;color:var(--accent-green);">📋 Spielregeln</h3>
+        <div class="rules-section">
+            <h4>Tippen</h4>
+            <div class="rules-row">→ Tipps sind bis zum <b>Anpfiff</b> möglich, danach gesperrt.</div>
+            <div class="rules-row">→ Beide Felder ausfüllen oder beide leer lassen.</div>
+            <div class="rules-row">→ Tipp darf bis Anpfiff beliebig geändert werden.</div>
+            <div class="rules-row">→ Kein Tipp = 0 Punkte.</div>
+        </div>
+        <div class="rules-section">
+            <h4>Punktevergabe</h4>
+            <div class="rules-row" style="display:flex;align-items:baseline;gap:10px;"><span class="rules-pts" style="color:#ccff00">3</span><span>Exaktes Ergebnis (z.B. 2:1 → 2:1)</span></div>
+            <div class="rules-row" style="display:flex;align-items:baseline;gap:10px;"><span class="rules-pts" style="color:#38bdf8">2</span><span>Richtige Tordifferenz (z.B. 2:0 → 3:1)</span></div>
+            <div class="rules-row" style="display:flex;align-items:baseline;gap:10px;"><span class="rules-pts" style="color:#fb923c">1</span><span>Richtige Tendenz (Sieg / Remis / Niederlage)</span></div>
+            <div class="rules-row" style="display:flex;align-items:baseline;gap:10px;"><span class="rules-pts" style="color:#ef4444">0</span><span>Falsche Tendenz</span></div>
+        </div>
+        <div class="rules-section">
+            <h4>Rangliste &amp; Tiebreaker</h4>
+            <div class="rules-row">→ Bei Gleichstand: mehr Exakt-Treffer (3P) gewinnt.</div>
+            <div class="rules-row">→ Danach: mehr Treffer gesamt.</div>
+        </div>
+        <div class="rules-section">
+            <h4>Tipps anderer Spieler</h4>
+            <div class="rules-row">→ Tipps der Mitspieler sind erst <b>nach Anpfiff</b> sichtbar.</div>
+        </div>
+        <div class="rules-section">
+            <h4>Ergebnisse</h4>
+            <div class="rules-row">→ Es zählt das Ergebnis nach <b>regulärer Spielzeit (90 Min.)</b>.</div>
+            <div class="rules-row">→ Verlängerung und Elfmeterschießen werden <b>nicht</b> gewertet.</div>
+        </div>
+        <div class="rules-section">
+            <h4>💰 Gewinnausschüttung</h4>
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">Einsatz: 25€ pro Spieler</div>
+            <table style="margin-top:0;">
+                <thead><tr><th style="width:15%;text-align:left;">Platz</th><th style="width:15%;">Anteil</th><th style="width:35%;">15 Spieler</th><th style="width:35%;">20 Spieler</th></tr></thead>
+                <tbody>
+                    <tr><td>🥇 1.</td><td>30%</td><td><b style="color:#ccff00">112€</b></td><td><b style="color:#ccff00">150€</b></td></tr>
+                    <tr><td>🥈 2.</td><td>19%</td><td><b style="color:#c0c0c0">71€</b></td><td><b style="color:#c0c0c0">95€</b></td></tr>
+                    <tr><td>🥉 3.</td><td>11%</td><td><b style="color:#cd7f32">41€</b></td><td><b style="color:#cd7f32">55€</b></td></tr>
+                    <tr><td>4.</td><td>8%</td><td>30€</td><td>40€</td></tr>
+                    <tr><td>5.</td><td>7%</td><td>26€</td><td>35€</td></tr>
+                    <tr><td>6.</td><td>6%</td><td>23€</td><td>30€</td></tr>
+                    <tr><td>7.</td><td>5%</td><td>19€</td><td>25€</td></tr>
+                    <tr><td>8.</td><td>5%</td><td>19€</td><td>25€</td></tr>
+                    <tr><td>9.</td><td>5%</td><td>19€</td><td>25€</td></tr>
+                    <tr><td>10.</td><td>4%</td><td>15€</td><td>20€</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Push-Benachrichtigungs-Banner -->
+<div id="push-banner" style="display:none;position:fixed;top:calc(56px + env(safe-area-inset-top));left:0;width:100%;z-index:200;padding:10px 12px;background:#1c2129;border-bottom:2px solid var(--accent-green);align-items:center;gap:10px;font-size:13px;">
+    <span style="flex:1;">🔔 Benachrichtigungen für Ergebnisse &amp; Kommentare aktivieren?</span>
+    <button onclick="enablePush()" style="height:30px;padding:0 12px;font-size:12px;background:var(--accent-green);color:#000;border-radius:20px;font-weight:700;">Ja</button>
+    <button onclick="document.getElementById('push-banner').style.display='none'" style="height:30px;padding:0 8px;font-size:12px;background:transparent;border:1px solid var(--border);color:var(--text-muted);border-radius:20px;">Nein</button>
+</div>
+
+<!-- Schnelltippen Overlay -->
+<div id="quicktip-overlay">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-top:8px;">
+        <h2 style="margin:0;font-size:18px;">⚡ Schnelltippen</h2>
+        <small style="color:var(--text-muted);">Ziffer eingeben → springt automatisch</small>
+    </div>
+    <div id="quicktip-content"></div>
+    <div id="quicktip-footer">
+        <div style="display:flex;gap:8px;">
+            <button onclick="closeQuickTip()" class="btn-secondary" style="flex:1;">Abbrechen</button>
+            <button onclick="saveAllTips()" style="flex:2;background:var(--btn-green);">⚡ Alle speichern</button>
+        </div>
+    </div>
+</div>
+
+<!-- SPIELE TAB -->
+<div id="tab-matches" class="tab-content">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px 2px;">
+        <h2 style="margin:0;font-size:20px;">⚽ Spiele</h2>
+        <button onclick="openQuickTip()" style="height:30px;padding:0 12px;font-size:12px;background:rgba(204,255,0,.1);border:1px solid var(--accent-green);color:var(--accent-green);border-radius:20px;">⚡ Schnelltippen</button>
+    </div>
+    <div id="today-overview" style="display:none;"></div>
+    <div id="urgency-banner"></div>
+    <div class="filter-bar">
+        <button class="filter-btn active" onclick="setFilter('offen',this)">Offen</button>
+        <button class="filter-btn" onclick="setFilter('heute',this)">Heute</button>
+        <button class="filter-btn" onclick="setFilter('beendet',this)">Beendet</button>
+        <button class="filter-btn" onclick="setFilter('alle',this)">Alle</button>
+        <button class="filter-btn" onclick="setFilter('ko',this)">KO</button>
+        <div class="filter-sep"></div>
+        <button class="filter-btn" onclick="setFilter('gr-A',this)">A</button>
+        <button class="filter-btn" onclick="setFilter('gr-B',this)">B</button>
+        <button class="filter-btn" onclick="setFilter('gr-C',this)">C</button>
+        <button class="filter-btn" onclick="setFilter('gr-D',this)">D</button>
+        <button class="filter-btn" onclick="setFilter('gr-E',this)">E</button>
+        <button class="filter-btn" onclick="setFilter('gr-F',this)">F</button>
+        <button class="filter-btn" onclick="setFilter('gr-G',this)">G</button>
+        <button class="filter-btn" onclick="setFilter('gr-H',this)">H</button>
+        <button class="filter-btn" onclick="setFilter('gr-I',this)">I</button>
+        <button class="filter-btn" onclick="setFilter('gr-J',this)">J</button>
+        <button class="filter-btn" onclick="setFilter('gr-K',this)">K</button>
+        <button class="filter-btn" onclick="setFilter('gr-L',this)">L</button>
+    </div>
+    <div id="tip-progress"></div>
+    <div id="matches-list">Lade Spiele...</div>
+</div>
+
+<!-- GRUPPEN TAB -->
+<div id="tab-groups" class="tab-content">
+    <h2 class="page-title">📊 Gruppenstände</h2>
+    <div id="groups-list"></div>
+</div>
+
+<!-- RANGLISTE TAB -->
+<div id="tab-rankings" class="tab-content">
+    <h2 class="page-title">🏆 Rangliste</h2>
+    <div id="rankings-list"></div>
+</div>
+
+<!-- STATS TAB -->
+<div id="tab-stats" class="tab-content">
+    <h2 class="page-title">📈 Statistiken</h2>
+    <div id="personal-stats-card" class="card" style="display:none;"><h3>Meine Statistiken</h3><div id="personal-stats"></div></div>
+    <div class="card"><h3>Ranglisten-Verlauf</h3><div id="rankings-chart"><p style="color:var(--text-muted);text-align:center;padding:20px;">Lade...</p></div></div>
+    <div class="card"><h3>Head-to-Head</h3><div id="h2h-content"></div></div>
+</div>
+
+<!-- ADMIN TAB -->
+<div id="tab-admin" class="tab-content">
+    <h2 class="page-title">⚙️ Admin</h2>
+    <div class="admin-nav">
+        <button class="admin-nav-btn active" onclick="switchAdminTab('adm-dashboard',this)">📋 Dashboard</button>
+        <button class="admin-nav-btn" onclick="switchAdminTab('adm-users',this)">👥 User</button>
+        <button class="admin-nav-btn" onclick="switchAdminTab('adm-results',this)">⚽ Ergebnisse</button>
+    </div>
+    
+    <div id="adm-dashboard" class="admin-section" style="display:block;">
+        <div class="card" style="border-left:4px solid #fb923c;">
+            <h3>📋 Dashboard</h3>
+            <div id="admin-dashboard">Lade...</div>
+        </div>
+    </div>
+    
+    <div id="adm-users" class="admin-section">
+        <div class="card" style="border-left:4px solid var(--primary); margin-bottom:15px;">
+            <h3>Einladungslink</h3>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 0; margin-bottom: 12px;">
+                Link kopieren und verteilen, damit Nutzer sich selbst registrieren können.
+            </p>
+            <button class="btn-primary" style="width: 100%;" onclick="navigator.clipboard.writeText(window.location.origin + '/einladung').then(() => { typeof showToast === 'function' ? showToast('Einladungslink kopiert', 'success') : alert('Einladungslink kopiert!'); })">
+                🔗 Link in Zwischenablage kopieren
+            </button>
+        </div>
+
+        <div class="card" style="border-left:4px solid var(--accent-green); margin-bottom:15px;">
+            <h3>Manuell User anlegen</h3>
+            <div style="display:flex;gap:8px;">
+                <input type="text" id="admin-new-user" placeholder="Name" style="flex:1;">
+                <button class="btn-primary" onclick="createUser()">Erstellen</button>
+            </div>
+        </div>
+        
+        <div class="card" style="border-left:4px solid var(--accent);">
+            <h3>User verwalten</h3>
+            <div id="admin-users-list"><span style="color:var(--text-muted);">Lade...</span></div>
+        </div>
+    </div>
+    
+    <div id="adm-results" class="admin-section">
+        <div id="admin-matches"></div>
+    </div>
+</div>
+
+<nav class="bottom-nav" id="bottom-nav">
+    <button onclick="switchTab('tab-matches')" id="btn-matches" class="active">⚽<br>Spiele</button>
+    <button onclick="switchTab('tab-groups')" id="btn-groups">📊<br>Gruppen</button>
+    <button onclick="switchTab('tab-rankings')" id="btn-rankings">🏆<br>Rangliste</button>
+    <button onclick="switchTab('tab-stats')" id="btn-stats">📈<br>Stats</button>
+</nav>
+
+<script>
+// ── Konstanten ──────────────────────────────────────────────────────────────
+const flags = {"Mexiko":"🇲🇽","Südkorea":"🇰🇷","Südafrika":"🇿🇦","Tschechien":"🇨🇿","Kanada":"🇨🇦","Schweiz":"🇨🇭","Katar":"🇶🇦","Bosnien und Herzegowina":"🇧🇦","Brasilien":"🇧🇷","Marokko":"🇲🇦","Schottland":"🏴󠁧󠁢󠁳󠁣󠁴󠁿","Haiti":"🇭🇹","USA":"🇺🇸","Australien":"🇦🇺","Paraguay":"🇵🇾","Türkei":"🇹🇷","Deutschland":"🇩🇪","Ecuador":"🇪🇨","Elfenbeinküste":"🇨🇮","Curaçao":"🇨🇼","Niederlande":"🇳🇱","Japan":"🇯🇵","Tunesien":"🇹🇳","Schweden":"🇸🇪","Belgien":"🇧🇪","Iran":"🇮🇷","Ägypten":"🇪🇬","Neuseeland":"🇳🇿","Spanien":"🇪🇸","Uruguay":"🇺🇾","Saudi-Arabien":"🇸🇦","Kap Verde":"🇨🇻","Frankreich":"🇫🇷","Senegal":"🇸🇳","Norwegen":"🇳🇴","Irak":"🇮🇶","Argentinien":"🇦🇷","Österreich":"🇦🇹","Algerien":"🇩🇿","Jordanien":"🇯🇴","Portugal":"🇵🇹","Kolumbien":"🇨🇴","Usbekistan":"🇺🇿","DR Kongo":"🇨🇩","England":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","Kroatien":"🇭🇷","Panama":"🇵🇦","Ghana":"🇬🇭"};
+const CHART_COLORS=['#ccff00','#38bdf8','#fb923c','#f472b6','#a78bfa','#34d399','#fbbf24','#ef4444','#818cf8','#2dd4bf','#fb7185','#a3e635','#c084fc','#67e8f9','#86efac','#fde68a','#f9a8d4','#6ee7b7','#fca5a5','#93c5fd'];
+const REACTION_EMOJIS = ['🎯','😭','🔥','😱','🤩','😤'];
+
+let globalData=null, adminMode=false, urlAdminPass='', myToken='', currentFilter='offen', currentRankingPhase='all';
+
+// ── Hilfsfunktionen ─────────────────────────────────────────────────────────
+// Anzeigename: Bosnien und Herzegowina → Bosnien
+function dn(name) { return name==='Bosnien und Herzegowina'?'Bosnien':name; }
+function f(name)  { return flags[name]||flags[dn(name)]||'⚽'; }
+
+function setCookie(name,val) {
+    document.cookie=`${name}=${encodeURIComponent(val)}; path=/; max-age=31536000; SameSite=Lax`;
+}
+function getCookie(name) {
+    const m=document.cookie.match(new RegExp('(^| )'+name+'=([^;]+)'));
+    return m?decodeURIComponent(m[2]):null;
+}
+
+let _toastTimer;
+function showToast(msg,type='success') {
+    const el=document.getElementById('toast');
+    el.textContent=msg; el.className='show '+type;
+    clearTimeout(_toastTimer);
+    _toastTimer=setTimeout(()=>el.className='',3000);
+}
+function closeModal() { document.getElementById('modal-overlay').style.display='none'; }
+
+function formatCountdown(kickoff) {
+    const diff=kickoff-Date.now(); if(diff<=0) return null;
+    const min=Math.floor(diff/60000),h=Math.floor(min/60),m=min%60,d=Math.floor(h/24);
+    if(d>=7) return `${d}d`;
+    if(d>=1) return `${d}d ${h%24}h`;
+    if(h>=1) return `${h}h ${m}m`;
+    return `${m}m ⚠️`;
+}
+function updateCountdowns() {
+    document.querySelectorAll('.countdown-timer').forEach(el=>{
+        const cd=formatCountdown(parseInt(el.dataset.kickoff));
+        el.textContent=cd?cd:'Läuft';
+    });
+}
+setInterval(updateCountdowns,30000);
+
+
+// ── Achievements ──────────────────────────────────────────────────────────────
+function computeAchievements(data, userId) {
+    const badges = [];
+    const finished = data.matches.filter(m=>m.finished).sort((a,b)=>a.kickoff-b.kickoff);
+    const tips = data.tips.filter(t=>t.userId===userId&&t.tipA!==null);
+    // 🎯 Hellseher: 3+ Exakt in Folge
+    let seq=0,max=0;
+    finished.forEach(m=>{ const t=tips.find(t=>t.matchId===m.id); if(t&&t.points===3){seq++;max=Math.max(max,seq);}else seq=0; });
+    if(max>=3) badges.push({icon:'🎯',label:'Hellseher',desc:`${max}× Exakt in Folge`});
+    // 🔥 On Fire: 5+ richtig in Folge
+    seq=0;max=0;
+    finished.forEach(m=>{ const t=tips.find(t=>t.matchId===m.id); if(t&&t.points>0){seq++;max=Math.max(max,seq);}else seq=0; });
+    if(max>=5) badges.push({icon:'🔥',label:'On Fire',desc:`${max}× richtig in Folge`});
+    // 💯 Vollständig: alle beendeten Spiele getippt
+    if(finished.length>5&&tips.filter(t=>finished.find(m=>m.id===t.matchId)).length===finished.length)
+        badges.push({icon:'💯',label:'Vollständig',desc:'Alle Spiele getippt'});
+    // 👑 Spitzenreiter: Platz 1
+    const s=[...data.users].sort((a,b)=>b.points-a.points);
+    if(s[0]?.id===userId&&s[0].points>0) badges.push({icon:'👑',label:'Spitzenreiter',desc:'Aktuell auf Platz 1'});
+    // ⚡ Vorausdenker: alle offenen Spiele getippt
+    const now=Date.now();
+    const open=data.matches.filter(m=>!m.finished&&m.kickoff>now&&!m.teamA.startsWith('TBA'));
+    if(open.length>0&&open.every(m=>data.tips.find(t=>t.matchId===m.id&&t.userId===userId&&t.tipA!==null)))
+        badges.push({icon:'⚡',label:'Vorausdenker',desc:'Alle offenen Spiele getippt'});
+    // 🏆 KO-Spezialist: ≥60% der KO-Spiele richtig
+    const ko=finished.filter(m=>m.type==='ko');
+    if(ko.length>=4){
+        const hits=tips.filter(t=>ko.find(m=>m.id===t.matchId)&&t.points>0).length;
+        if(hits/ko.length>=.6) badges.push({icon:'🏆',label:'KO-Spezialist',desc:`${hits}/${ko.length} KO richtig`});
+    }
+    return badges;
+}
+
+// ── Tipp-Vergleich nach Spiel ─────────────────────────────────────────────────
+function renderMatchComparison(data, matchId, me) {
+    const rows=[...data.users].map(u=>{
+        const t=data.tips.find(t=>t.matchId===matchId&&t.userId===u.id);
+        return {name:u.name,id:u.id,pts:t?.tipA!==null&&t?.tipA!==undefined?(t.points||0):null,
+                tipStr:t?.tipA!==null&&t?.tipA!==undefined?`${t.tipA}:${t.tipB}`:null};
+    }).sort((a,b)=>(b.pts??-1)-(a.pts??-1));
+    return `<div style="padding:8px 0 4px;">
+        <div style="font-size:11px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">📊 Tipp-Vergleich</div>
+        ${rows.map(r=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border);font-size:12px;${r.id===(me?.id)&&me?'color:var(--accent-green);font-weight:700':''}">
+            <span>${r.name}</span>
+            <span>${r.tipStr?`${r.tipStr} <span class="pts-badge pts-${r.pts}">${r.pts}P</span>`:'<i style="color:var(--text-muted)">kein Tipp</i>'}</span>
+        </div>`).join('')}
+    </div>`;
+}
+
+// ── Heute-Übersicht ───────────────────────────────────────────────────────────
+function renderTodayOverview(data) {
+    const el=document.getElementById('today-overview');
+    if(!el) return;
+    const now=Date.now();
+    const ts=new Date();ts.setHours(0,0,0,0);
+    const te=new Date(ts);te.setDate(te.getDate()+1);
+    const today=data.matches.filter(m=>m.kickoff>=ts.getTime()&&m.kickoff<te.getTime()).sort((a,b)=>a.kickoff-b.kickoff);
+    if(!today.length){el.style.display='none';return;}
+    const me=myToken?data.users.find(u=>u.token===myToken):null;
+    const rows=today.map(m=>{
+        const isLive=!m.finished&&m.kickoff<=now&&now<=m.kickoff+115*60000;
+        const tip=me?data.tips.find(t=>t.matchId===m.id&&t.userId===me.id&&t.tipA!==null):null;
+        const time=new Date(m.kickoff).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+        const status=m.finished?`<span style="color:var(--accent-green);font-weight:700">${m.resultA}:${m.resultB} ✓</span>`
+            :isLive?'<span class="live-badge">🔴 Live</span>'
+            :tip?`<span style="color:var(--accent-green);font-size:12px">✓ ${tip.tipA}:${tip.tipB}</span>`
+            :'<span style="color:var(--text-muted);font-size:12px">– kein Tipp</span>';
+        return `<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid var(--border);font-size:13px;">
+            <span style="color:var(--text-muted);width:34px;flex-shrink:0;font-size:12px;">${time}</span>
+            <span style="flex:1;">${f(m.teamA)} ${dn(m.teamA).split(' ')[0]} vs ${dn(m.teamB).split(' ')[0]} ${f(m.teamB)}</span>
+            <span style="flex-shrink:0;">${status}</span>
+        </div>`;
+    }).join('');
+    el.style.display='block';
+    el.innerHTML=`<div style="margin:8px 12px 4px;padding:10px 12px;background:var(--card-bg);border-radius:12px;border:1px solid var(--border);">
+        <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">📅 Heute – ${today.length} Spiel${today.length!==1?'e':''}</div>
+        ${rows}
+    </div>`;
+}
+
+// ── Tab Navigation ───────────────────────────────────────────────────────────
+function switchTab(id) {
+    document.querySelectorAll('.tab-content').forEach(t=>t.style.display='none');
+    document.getElementById(id).style.display='block';
+    document.querySelectorAll('.bottom-nav button').forEach(b=>b.classList.remove('active'));
+    const btn=document.getElementById('btn-'+id.replace('tab-',''));
+    if(btn) btn.classList.add('active');
+    if(globalData) refreshData();
+}
+
+// ── Filter ───────────────────────────────────────────────────────────────────
+function setFilter(filter,btn) {
+    currentFilter=filter;
+    document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    if(globalData) renderMatches(globalData);
+}
+
+// ── Urgency Banner ───────────────────────────────────────────────────────────
+function renderUrgencyBanner(data) {
+    const banner=document.getElementById('urgency-banner');
+    if(!myToken){banner.style.display='none';return;}
+    const me=data.users.find(u=>u.token===myToken);
+    if(!me){banner.style.display='none';return;}
+    const now=Date.now();
+    const urgent=data.matches.filter(m=>{
+        if(m.finished||m.kickoff<now||m.kickoff>now+7200000||m.teamA.startsWith('TBA')) return false;
+        return !data.tips.find(t=>t.matchId===m.id&&t.userId===me.id&&t.tipA!==null);
+    });
+    if(!urgent.length){banner.style.display='none';return;}
+    banner.style.display='block';
+    banner.innerHTML='⚠️ Bald ohne Tipp: <b>'+urgent.map(m=>`${f(m.teamA)}${dn(m.teamA).split(' ')[0]} vs ${dn(m.teamB).split(' ')[0]}`).join(' · ')+'</b>';
+}
+
+// ── Tip Progress ─────────────────────────────────────────────────────────────
+function renderTipProgress(data) {
+    const el=document.getElementById('tip-progress');
+    if(!myToken){el.innerHTML='';return;}
+    const me=data.users.find(u=>u.token===myToken);
+    if(!me){el.innerHTML='';return;}
+    const now=Date.now();
+    const upcoming=data.matches.filter(m=>!m.finished&&m.kickoff>now&&!m.teamA.startsWith('TBA'));
+    const tipped=upcoming.filter(m=>data.tips.find(t=>t.matchId===m.id&&t.userId===me.id&&t.tipA!==null)).length;
+    const total=upcoming.length,pct=total>0?Math.round((tipped/total)*100):100;
+    const col=pct===100?'var(--accent-green)':pct<50?'var(--accent)':'#fb923c';
+    el.innerHTML=`<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted);margin-bottom:4px;">
+        <span>Offene Spiele getippt</span><span><b style="color:${col}">${tipped}/${total}</b></span></div>
+        <div style="background:var(--border);border-radius:4px;height:4px;overflow:hidden;margin-bottom:6px;">
+        <div style="background:${col};height:100%;width:${pct}%;border-radius:4px;transition:width .5s;"></div></div>`;
+}
+
+// ── Tipp-Vorhersagen ─────────────────────────────────────────────────────────
+function renderPredictions(data, matchId, teamA, teamB) {
+    const tips=data.tips.filter(t=>t.matchId===matchId&&t.tipA!==null);
+    if(!tips.length) return '';
+    const total=tips.length;
+    let hw=0,dr=0,aw=0;
+    tips.forEach(t=>{ if(t.tipA>t.tipB)hw++; else if(t.tipA===t.tipB)dr++; else aw++; });
+    const phw=Math.round(hw/total*100),pdr=Math.round(dr/total*100),paw=100-phw-pdr;
+    const na=dn(teamA).split(' ')[0], nb=dn(teamB).split(' ')[0];
+    return `<div style="margin:4px 0 6px;font-size:11px;">
+        <div style="display:flex;justify-content:space-between;color:var(--text-muted);margin-bottom:3px;">
+            <span>${f(teamA)} ${na} ${phw}%</span>
+            <span>${pdr}% Unent.</span>
+            <span>${paw}% ${nb} ${f(teamB)}</span>
+        </div>
+        <div style="display:flex;height:5px;border-radius:4px;overflow:hidden;gap:1px;">
+            <div style="width:${phw}%;background:var(--accent-green);border-radius:4px 0 0 4px;"></div>
+            <div style="width:${pdr}%;background:#8b949e;"></div>
+            <div style="width:${paw}%;background:var(--accent);border-radius:0 4px 4px 0;"></div>
+        </div>
+        <div style="text-align:center;color:var(--text-muted);font-size:10px;margin-top:2px;">${total} Tipp${total!==1?'s':''}</div>
+    </div>`;
+}
+
+// ── Reaktionen ───────────────────────────────────────────────────────────────
+function renderReactions(data, matchId, myUserId) {
+    const reactions=(data.reactions||[]).filter(r=>r.matchId===matchId);
+    const myReaction=reactions.find(r=>r.userId===myUserId)?.emoji;
+    const counts={};
+    REACTION_EMOJIS.forEach(e=>counts[e]=0);
+    reactions.forEach(r=>{if(counts[r.emoji]!==undefined)counts[r.emoji]++;});
+    return `<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
+        ${REACTION_EMOJIS.map(e=>{
+            const cnt=counts[e], active=myReaction===e;
+            return `<button class="reaction-btn${active?' active':''}" onclick="react('${matchId}','${e}')">
+                ${e}${cnt>0?` <span style="font-size:10px;color:var(--text-muted)">${cnt}</span>`:''}
+            </button>`;
+        }).join('')}
+    </div>`;
+}
+
+async function react(matchId, emoji) {
+    if(!myToken){showToast('Nur für angemeldete User','error');return;}
+    try {
+        const r=await fetch('/api/reaction',{method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({matchId,emoji,token:myToken})});
+        if(r.ok) await refreshData();
+        else { const d=await r.json(); showToast(d.error,'error'); }
+    } catch { showToast('Netzwerkfehler','error'); }
+}
+
+// ── Schnelltippen ────────────────────────────────────────────────────────────
+function openQuickTip() {
+    if(!myToken){showToast('Nur für angemeldete User','error');return;}
+    renderQuickTip(globalData);
+    document.getElementById('quicktip-overlay').style.display='block';
+}
+function closeQuickTip() {
+    document.getElementById('quicktip-overlay').style.display='none';
+}
+
+function qtAdvance(el) {
+    if(el.value.length>=1) {
+        const inputs=[...document.querySelectorAll('.qt-input')];
+        const idx=inputs.indexOf(el);
+        if(idx<inputs.length-1) inputs[idx+1].focus();
+    }
+}
+
+function renderQuickTip(data) {
+    if(!data) return;
+    const me=data.users.find(u=>u.token===myToken);
+    if(!me) return;
+    const now=Date.now();
+    const open=data.matches.filter(m=>!m.finished&&m.kickoff>now&&!m.teamA.startsWith('TBA')).sort((a,b)=>a.kickoff-b.kickoff);
+    if(!open.length){
+        document.getElementById('quicktip-content').innerHTML='<p style="color:var(--text-muted);text-align:center;padding:40px;">Keine offenen Spiele.</p>';
+        return;
+    }
+    // Gruppieren nach Datum
+    const byDay={};
+    open.forEach(m=>{
+        const d=new Date(m.kickoff);
+        const key=d.toLocaleDateString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit'});
+        if(!byDay[key]) byDay[key]=[];
+        byDay[key].push(m);
+    });
+    let html='';
+    Object.entries(byDay).forEach(([day,matches])=>{
+        html+=`<div style="font-size:12px;font-weight:700;color:var(--accent-green);margin:12px 0 6px;text-transform:uppercase;letter-spacing:.5px;">📅 ${day}</div>`;
+        matches.forEach(m=>{
+            const tip=data.tips.find(t=>t.matchId===m.id&&t.userId===me.id);
+            const valA=tip&&tip.tipA!==null?tip.tipA:'';
+            const valB=tip&&tip.tipB!==null?tip.tipB:'';
+            html+=`<div class="qt-row">
+                <div class="qt-teams">${f(m.teamA)} ${dn(m.teamA)} <span style="color:var(--text-muted)">vs</span> ${dn(m.teamB)} ${f(m.teamB)}</div>
+                <div style="display:flex;align-items:center;flex-shrink:0;">
+                    <input type="number" inputmode="numeric" pattern="[0-9]*" class="qt-input"
+                        id="qt-A-${m.id}" value="${valA}" min="0" max="30"
+                        oninput="qtAdvance(this)">
+                    <span style="font-weight:900;margin:0 3px;color:var(--text-muted);">:</span>
+                    <input type="number" inputmode="numeric" pattern="[0-9]*" class="qt-input"
+                        id="qt-B-${m.id}" value="${valB}" min="0" max="30"
+                        oninput="qtAdvance(this)">
+                </div>
+            </div>`;
+        });
+    });
+    document.getElementById('quicktip-content').innerHTML=html;
+}
+
+async function saveAllTips() {
+    const me=globalData?.users.find(u=>u.token===myToken);
+    if(!me) return;
+    const now=Date.now();
+    const open=globalData.matches.filter(m=>!m.finished&&m.kickoff>now&&!m.teamA.startsWith('TBA'));
+    let saved=0, skipped=0, errors=0;
+    for(const m of open) {
+        const elA=document.getElementById('qt-A-'+m.id);
+        const elB=document.getElementById('qt-B-'+m.id);
+        if(!elA||!elB) continue;
+        const tipA=elA.value, tipB=elB.value;
+        if(tipA===''&&tipB==='') { skipped++; continue; }
+        if((tipA===''&&tipB!=='')||(tipA!==''&&tipB==='')) { errors++; continue; }
+        try {
+            const r=await fetch('/api/tip',{method:'POST',headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({matchId:m.id,tipA,tipB,token:myToken})});
+            if(r.ok) saved++; else errors++;
+        } catch { errors++; }
+    }
+    await refreshData();
+    closeQuickTip();
+    showToast(`${saved} Tipps gespeichert${errors>0?' · '+errors+' Fehler':''}`);
+}
+
+
+// ── Social Toggle (Reaktionen + Kommentare) ───────────────────────────────────
+function toggleSocial(matchId) {
+    const el = document.getElementById('social-' + matchId);
+    if (!el) return;
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+// ── Auto-Advance Tipp-Felder (Spiele Tab) ────────────────────────────────────
+function tipAdvance(el, matchId, side) {
+    if (el.value.length >= 1) {
+        if (side === 'A') {
+            const next = document.getElementById('tipB-' + matchId);
+            if (next) { next.focus(); next.select(); }
+        } else {
+            el.blur(); // Tastatur schließen nach tipB
+        }
+    }
+}
+// ── Tipp abgeben ─────────────────────────────────────────────────────────────
+async function submitTip(matchId) {
+    const tipA=document.getElementById('tipA-'+matchId).value;
+    const tipB=document.getElementById('tipB-'+matchId).value;
+    if((tipA===''&&tipB!=='')||(tipA!==''&&tipB==='')) {showToast('Bitte beide Felder oder keins.','error');return;}
+    try {
+        const r=await fetch('/api/tip',{method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({matchId,tipA,tipB,token:myToken})});
+        const d=await r.json();
+        if(r.ok){showToast(tipA===''?'Tipp entfernt.':`Tipp ${tipA}:${tipB} gespeichert ✓`);await refreshData();}
+        else showToast('Fehler: '+d.error,'error');
+    } catch{showToast('Netzwerkfehler','error');}
+}
+
+// ── User anlegen / löschen ────────────────────────────────────────────────────
+async function createUser() {
+    const name=document.getElementById('admin-new-user').value.trim();
+    if(!name){showToast('Bitte Namen eingeben.','error');return;}
+    try {
+        const r=await fetch('/api/admin/user',{method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({newUserName:name,adminPass:urlAdminPass})});
+        const d=await r.json();
+        if(r.ok){
+            const link=`${location.origin}/?token=${d.user.token}`;
+            if(navigator.clipboard) navigator.clipboard.writeText(link).catch(()=>{});
+            showToast(`"${d.user.name}" angelegt – Link kopiert ✓`);
+            document.getElementById('admin-new-user').value='';
+            await refreshData();
+        } else showToast('Fehler: '+(d.error||'Unbekannt'),'error');
+    } catch{showToast('Netzwerkfehler','error');}
+}
+async function deleteUser(userId,userName) {
+    if(!confirm(`"${userName}" und alle Tipps löschen?`)) return;
+    try {
+        const r=await fetch(`/api/admin/user/${userId}`,{method:'DELETE',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({adminPass:urlAdminPass})});
+        const d=await r.json();
+        if(r.ok){showToast(`"${userName}" gelöscht.`);await refreshData();}
+        else showToast('Fehler: '+(d.error||'Unbekannt'),'error');
+    } catch{showToast('Netzwerkfehler','error');}
+}
+
+// ── Ergebnis speichern ────────────────────────────────────────────────────────
+async function submitResult(matchId) {
+    const resA=document.getElementById('admin-resA-'+matchId).value;
+    const resB=document.getElementById('admin-resB-'+matchId).value;
+    const teamA=document.getElementById('admin-teamA-'+matchId).value;
+    const teamB=document.getElementById('admin-teamB-'+matchId).value;
+    try {
+        const r=await fetch('/api/admin/result',{method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({matchId,resultA:resA,resultB:resB,teamA,teamB,adminPass:urlAdminPass})});
+        const d=await r.json();
+        if(r.ok){showToast(resA===''?'Ergebnis zurückgesetzt.':`${resA}:${resB} gespeichert ✓`);await refreshData();}
+        else showToast('Fehler: '+(d.error||'Ungültig'),'error');
+    } catch{showToast('Netzwerkfehler','error');}
+}
+
+// ── Tipps-Modal ───────────────────────────────────────────────────────────────
+function showTips(matchId) {
+    const m=globalData.matches.find(x=>x.id===matchId);
+    if(m.kickoff>Date.now()&&!adminMode){showToast('Tipps erst nach Anpfiff sichtbar ⚽','error');return;}
+    document.getElementById('modal-title').innerHTML=`${f(m.teamA)} ${dn(m.teamA)}<br>vs<br>${dn(m.teamB)} ${f(m.teamB)}`;
+    const ptslabels=['Daneben','Tendenz','Differenz','Exakt!'];
+    const rows=globalData.users.map(u=>{
+        const tip=globalData.tips.find(t=>t.matchId===matchId&&t.userId===u.id);
+        let tipStr='<i style="color:var(--text-muted)">Kein Tipp</i>',badge='';
+        if(tip&&tip.tipA!==null){
+            tipStr=`<b style="font-size:18px;color:var(--accent-green)">${tip.tipA}:${tip.tipB}</b>`;
+            if(m.finished) badge=`<span class="pts-badge pts-${tip.points}">${tip.points}P – ${ptslabels[tip.points]}</span>`;
+        }
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);">
+            <span>${u.name}</span><span>${tipStr}${badge}</span></div>`;
+    }).join('');
+    document.getElementById('modal-content').innerHTML=rows||'<p style="color:var(--text-muted)">Noch keine Tipps.</p>';
+    document.getElementById('modal-overlay').style.display='flex';
+}
+
+// ── Spiele rendern ────────────────────────────────────────────────────────────
+function renderMatches(data) {
+    const now=Date.now();
+    const me=myToken?data.users.find(u=>u.token===myToken):null;
+    let matches=[...data.matches].sort((a,b)=>a.kickoff-b.kickoff);
+    const todayStart=new Date();todayStart.setHours(0,0,0,0);
+    const tmrStart=new Date(todayStart);tmrStart.setDate(tmrStart.getDate()+1);
+    if     (currentFilter==='offen')   matches=matches.filter(m=>!m.finished&&m.kickoff>=now);
+    else if(currentFilter==='heute')   matches=matches.filter(m=>m.kickoff>=todayStart.getTime()&&m.kickoff<tmrStart.getTime());
+    else if(currentFilter==='beendet') matches=matches.filter(m=>m.finished);
+    else if(currentFilter==='ko')      matches=matches.filter(m=>m.type==='ko');
+    else if(currentFilter.startsWith('gr-')) {
+        const g=currentFilter.replace('gr-','');
+        matches=matches.filter(m=>m.group===g);
+    }
+    if(!matches.length){
+        document.getElementById('matches-list').innerHTML='<p style="text-align:center;color:var(--text-muted);padding:40px;">Keine Spiele in dieser Ansicht.</p>';
+        return;
+    }
+    const ptslabels=['Daneben 😬','Tendenz 👍','Differenz 🎯','Exakt! 🏆'];
+    document.getElementById('matches-list').innerHTML=matches.map(m=>{
+        const tip=me?data.tips.find(t=>t.matchId===m.id&&t.userId===me.id):null;
+        const isTBA = m.type==='ko' && (m.teamA.startsWith('TBA')||m.teamB.startsWith('TBA'));
+        const isLive = !m.finished && !isTBA && m.kickoff<=now && now<=m.kickoff+115*60000;
+        const isLocked=m.kickoff<now||m.finished||isTBA;
+        const cd=formatCountdown(m.kickoff);
+        let resultHtml='';
+        if(m.resultA!==null){
+            let badge='';
+            if(tip&&tip.tipA!==null){const p=tip.points;badge=`<span class="pts-badge pts-${p}" style="font-size:13px">${p}P – ${ptslabels[p]}</span>`;}
+            resultHtml=`<div style="text-align:center;margin:6px 0 4px;">
+                <span style="font-size:24px;font-weight:900;color:var(--accent-green);">${m.resultA}:${m.resultB}</span>${badge}</div>`;
+        }
+        // Vorhersagen (nach Anpfiff)
+        const predHtml = isLocked ? renderPredictions(data, m.id, m.teamA, m.teamB) : '';
+        // Reaktionen + Kommentare immer verfügbar
+        const reactionCount = (data.reactions||[]).filter(r=>r.matchId===m.id).length;
+        const commentCount  = (data.comments ||[]).filter(c=>c.matchId===m.id).length;
+        const socialCount   = reactionCount + commentCount;
+        const socialBadge   = socialCount > 0 ? `<span style="font-size:10px;background:var(--accent);color:white;border-radius:10px;padding:1px 5px;margin-left:2px;font-weight:700;">${socialCount}</span>` : '';
+        const borderColor=m.finished?'var(--accent-green)':isLive?'var(--accent)':isTBA?'#21262d':isLocked?'#4b3060':'#16a34a';
+        return `<div class="card" style="border-left:4px solid ${borderColor};">
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;">
+                <span>${new Date(m.kickoff).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})} Uhr ${m.type==='ko'?'· '+m.group:'· Gr.'+m.group}${m.finished?' <span style="color:var(--accent-green);font-weight:700">✓</span>':''}</span>
+                ${isLive?'<span class="live-badge">🔴 Live</span>':(!isLocked&&cd?`<span class="countdown-timer" data-kickoff="${m.kickoff}" style="color:#fb923c;font-weight:700;font-size:12px;">${cd}</span>`:'')}
+            </div>
+            <strong style="font-size:1.05rem;display:block;text-align:center;margin:6px 0;">${isTBA?'⏳ Teams noch nicht bekannt':`${f(m.teamA)} ${dn(m.teamA)} vs ${dn(m.teamB)} ${f(m.teamB)}`}</strong>
+            ${resultHtml}${predHtml}
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;">
+                ${isTBA?'<div style="color:var(--text-muted);font-size:12px;font-style:italic;">Tipp wird freigeschaltet sobald Teams feststehen</div>':me?`<div>
+                    <div style="font-size:10px;color:var(--text-muted);font-weight:700;text-transform:uppercase;margin-bottom:3px;">Mein Tipp</div>
+                    <div style="display:flex;align-items:center;">
+                        <input type="number" inputmode="numeric" pattern="[0-9]*" id="tipA-${m.id}" value="${tip&&tip.tipA!==null?tip.tipA:''}" ${isLocked?'disabled':''} min="0" max="30" ${!isLocked?`oninput="tipAdvance(this,'${m.id}','A')"`:''}> 
+                        <span style="font-weight:900;margin:0 5px;color:var(--text-muted);">:</span>
+                        <input type="number" inputmode="numeric" pattern="[0-9]*" id="tipB-${m.id}" value="${tip&&tip.tipB!==null?tip.tipB:''}" ${isLocked?'disabled':''} min="0" max="30" ${!isLocked?`oninput="tipAdvance(this,'${m.id}','B')"`:''}>
+                    </div></div>`:'<div style="color:var(--text-muted);font-style:italic;font-size:13px;">Nur Ansicht</div>'}
+                <div style="display:flex;align-items:center;gap:5px;">
+                    ${!isTBA&&me?`<button onclick="submitTip('${m.id}')" ${isLocked?'disabled':''}>${isLocked?'🔒':'Tipp'}</button>`:''}
+                    <button class="btn-secondary" onclick="toggleSocial('${m.id}')" style="margin-left:0;position:relative;">💬${socialBadge}</button>
+                    <button class="btn-secondary" onclick="showTips('${m.id}')" style="margin-left:0;">👁</button>
+                </div>
+            </div>
+            <div id="social-${m.id}" style="display:none;">
+                ${m.finished ? renderMatchComparison(data, m.id, me) : ''}
+                ${(me||adminMode) ? renderReactions(data, m.id, me?me.id:'admin') : ''}
+                ${(me||adminMode) ? renderComments(data, m.id, me?me.id:null) : ''}
+            </div>
+        </div>`;
+    }).join('');
+    renderUrgencyBanner(data);
+    renderTipProgress(data);
+    renderTodayOverview(data);
+}
+
+// ── Rangliste ─────────────────────────────────────────────────────────────────
+const PHASES = [
+    {id:'all',label:'Gesamt',fn:()=>true},
+    {id:'group',label:'Gruppen',fn:m=>m.type==='group'},
+    {id:'Sechzehntelfinale',label:'1/16',fn:m=>m.group==='Sechzehntelfinale'},
+    {id:'Achtelfinale',label:'1/8',fn:m=>m.group==='Achtelfinale'},
+    {id:'Viertelfinale',label:'1/4',fn:m=>m.group==='Viertelfinale'},
+    {id:'Halbfinale',label:'HF',fn:m=>m.group==='Halbfinale'},
+    {id:'finale',label:'Finale',fn:m=>m.group==='Finale'||m.group==='Spiel um Platz 3'},
+];
+
+function renderRankings(data) {
+    const phaseBar = `<div style="display:flex;gap:6px;overflow-x:auto;padding:0 12px 10px;scrollbar-width:none;">
+        ${PHASES.map(p=>{
+            const hasData = p.id==='all' || data.matches.some(m=>m.finished&&p.fn(m));
+            return `<button class="phase-btn${currentRankingPhase===p.id?' active':''}"
+                onclick="currentRankingPhase='${p.id}';renderRankings(globalData)"
+                ${!hasData?'disabled style="opacity:.35;cursor:default"':''}>${p.label}</button>`;
+        }).join('')}
+    </div>`;
+    const phase = PHASES.find(p=>p.id===currentRankingPhase)||PHASES[0];
+    const phaseMatchIds = new Set(data.matches.filter(m=>phase.fn(m)).map(m=>m.id));
+    const sorted=[...data.users].map(u=>{
+        const ut=data.tips.filter(t=>t.userId===u.id&&phaseMatchIds.has(t.matchId));
+        const pts=ut.reduce((s,t)=>s+(t.points||0),0);
+        const exact=ut.filter(t=>t.points===3).length;
+        const diff=ut.filter(t=>t.points===2).length;
+        const tend=ut.filter(t=>t.points===1).length;
+        return {...u,pPts:pts,pExact:exact,pDiff:diff,pTend:tend};
+    }).sort((a,b)=>{
+        if(b.pPts!==a.pPts)return b.pPts-a.pPts;
+        if(b.pExact!==a.pExact)return b.pExact-a.pExact;
+        return b.pTend-a.pTend;
+    });
+    const cards = !sorted.length
+        ? '<p style="text-align:center;color:var(--text-muted);padding:30px;">Noch keine Spieler.</p>'
+        : sorted.map((u,i)=>{
+            const medal=['🥇','🥈','🥉'][i]||`${i+1}.`;
+            const badges=computeAchievements(data,u.id);
+            const badgeHtml=badges.length?`<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;">${badges.map(b=>`<span class="achievement" title="${b.desc}">${b.icon} ${b.label}</span>`).join('')}</div>`:'';
+            const isMe=u.token===myToken;
+            return `<div class="card" style="display:flex;flex-direction:column;${isMe?'border-color:var(--accent-green);':''}">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                    <span style="font-size:17px;"><strong>${medal}</strong> ${u.name}</span>
+                    <span><b style="color:var(--accent-green);font-size:22px;">${u.pPts}</b><span style="color:var(--text-muted);font-size:13px;"> Pkt</span></span>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text-muted);border-top:1px solid var(--border);padding-top:6px;">
+                    <span>🎯 <b style="color:#ccff00">${u.pExact}</b></span>
+                    <span>📐 <b style="color:#38bdf8">${u.pDiff}</b></span>
+                    <span>📈 <b style="color:#fb923c">${u.pTend}</b></span>
+                </div>${badgeHtml}</div>`;
+        }).join('');
+    document.getElementById('rankings-list').innerHTML = phaseBar + cards;
+}
+
+// ── Gruppen ───────────────────────────────────────────────────────────────────
+function renderGroups(matches) {
+    const wmGroups={A:["Mexiko","Südkorea","Südafrika","Tschechien"],B:["Kanada","Schweiz","Katar","Bosnien"],C:["Brasilien","Marokko","Schottland","Haiti"],D:["USA","Australien","Paraguay","Türkei"],E:["Deutschland","Ecuador","Elfenbeinküste","Curaçao"],F:["Niederlande","Japan","Tunesien","Schweden"],G:["Belgien","Iran","Ägypten","Neuseeland"],H:["Spanien","Uruguay","Saudi-Arabien","Kap Verde"],I:["Frankreich","Senegal","Norwegen","Irak"],J:["Argentinien","Österreich","Algerien","Jordanien"],K:["Portugal","Kolumbien","Usbekistan","DR Kongo"],L:["England","Kroatien","Panama","Ghana"]};
+    document.getElementById('groups-list').innerHTML=Object.entries(wmGroups).map(([g,teams])=>{
+        const table={};
+        // Normalisiere Teamnamen (Bosnien und Herzegowina → Bosnien)
+        const norm=n=>n==='Bosnien und Herzegowina'?'Bosnien':n;
+        teams.forEach(t=>table[t]={sp:0,t:0,g:0,p:0});
+        matches.filter(m=>m.group===g&&m.finished).forEach(m=>{
+            const a=norm(m.teamA),b=norm(m.teamB);
+            if(!table[a]||!table[b]) return;
+            table[a].sp++;table[b].sp++;
+            table[a].t+=m.resultA;table[a].g+=m.resultB;
+            table[b].t+=m.resultB;table[b].g+=m.resultA;
+            if(m.resultA>m.resultB)table[a].p+=3;
+            else if(m.resultA<m.resultB)table[b].p+=3;
+            else{table[a].p+=1;table[b].p+=1;}
+        });
+        const sorted=Object.keys(table).map(n=>({name:n,...table[n]})).sort((a,b)=>b.p-a.p||(b.t-b.g)-(a.t-a.g)||b.t-a.t);
+        return `<div class="card"><h3>Gruppe ${g}</h3><table>
+            <thead><tr><th style="width:46%">Team</th><th style="width:9%">Sp</th><th style="width:18%">Tore</th><th style="width:12%">+/-</th><th style="width:15%">Pkt</th></tr></thead>
+            <tbody>${sorted.map((r,idx)=>{
+                const gd=r.t-r.g,gdCol=gd>0?'var(--accent-green)':gd<0?'var(--accent)':'var(--text-muted)';
+                const ql=idx<2?'border-left:3px solid var(--accent-green);padding-left:4px;':'';
+                return `<tr><td style="${ql}font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f(r.name)} ${r.name}</td>
+                    <td style="color:var(--text-muted)">${r.sp}</td><td style="color:var(--text-muted)">${r.t}:${r.g}</td>
+                    <td style="color:${gdCol};font-weight:700">${gd>0?'+':''}${gd}</td>
+                    <td><b style="color:var(--accent-green);font-size:15px">${r.p}</b></td></tr>`;
+            }).join('')}</tbody></table></div>`;
+    }).join('');
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────────────
+function renderStats(data) {
+    const psCard=document.getElementById('personal-stats-card');
+    if(myToken){
+        const me=data.users.find(u=>u.token===myToken);
+        if(me){
+            psCard.style.display='block';
+            const myTips=data.tips.filter(t=>t.userId===me.id);
+            const finishedTips=myTips.filter(t=>{const m=data.matches.find(x=>x.id===t.matchId);return m&&m.finished&&t.tipA!==null;});
+            const total=finishedTips.length,pts=finishedTips.reduce((s,t)=>s+(t.points||0),0);
+            const exact=finishedTips.filter(t=>t.points===3).length,diff=finishedTips.filter(t=>t.points===2).length;
+            const tend=finishedTips.filter(t=>t.points===1).length,miss=finishedTips.filter(t=>t.points===0).length;
+            const hitRate=total>0?Math.round(((exact+diff+tend)/total)*100):0;
+            const avgPts=total>0?(pts/total).toFixed(2):'-';
+            const now=Date.now(),upcoming=data.matches.filter(m=>!m.finished&&m.kickoff>now&&!m.teamA.startsWith('TBA'));
+            const tippedUp=upcoming.filter(m=>myTips.find(t=>t.matchId===m.id&&t.tipA!==null)).length;
+            document.getElementById('personal-stats').innerHTML=`
+                <div class="stat-grid">
+                    <div class="stat-box"><div class="stat-val">${tippedUp}/${upcoming.length}</div><div class="stat-lbl">Offene getippt</div></div>
+                    <div class="stat-box"><div class="stat-val">${hitRate}%</div><div class="stat-lbl">Trefferquote</div></div>
+                    <div class="stat-box"><div class="stat-val">${avgPts}</div><div class="stat-lbl">Ø Punkte/Spiel</div></div>
+                    <div class="stat-box"><div class="stat-val">${total}</div><div class="stat-lbl">Gewertete Tipps</div></div>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--border);font-size:13px;">
+                    <span>🎯 <b style="color:#ccff00">${exact}</b></span>
+                    <span>📐 <b style="color:#38bdf8">${diff}</b></span>
+                    <span>📈 <b style="color:#fb923c">${tend}</b></span>
+                    <span>❌ <b style="color:#ef4444">${miss}</b></span>
+                </div>`;
+        }
+    } else { psCard.style.display='none'; }
+    drawRankingsChart(data);
+    renderH2HSelectors(data);
+}
+
+function drawRankingsChart(data) {
+    const el=document.getElementById('rankings-chart');
+    const finished=data.matches.filter(m=>m.finished).sort((a,b)=>a.kickoff-b.kickoff);
+    if(finished.length<1){el.innerHTML='<p style="color:var(--text-muted);text-align:center;padding:20px;">Noch keine Spiele beendet.</p>';return;}
+    const users=data.users;
+    if(!users.length){el.innerHTML='<p style="color:var(--text-muted);text-align:center;">Keine Spieler.</p>';return;}
+    const cum={};users.forEach(u=>cum[u.id]=0);
+    const timeline=[{pts:users.reduce((a,u)=>({...a,[u.id]:0}),{})}];
+    finished.forEach(m=>{
+        data.tips.forEach(t=>{if(t.matchId===m.id&&cum.hasOwnProperty(t.userId))cum[t.userId]+=(t.points||0);});
+        timeline.push({pts:{...cum}});
+    });
+    const maxPts=Math.max(...users.map(u=>cum[u.id]),1);
+    const W=320,H=170,PL=26,PR=8,PT=8,PB=18,cW=W-PL-PR,cH=H-PT-PB,n=timeline.length;
+    const gx=i=>PL+(i/(n-1||1))*cW,gy=p=>PT+cH-(p/maxPts)*cH;
+    let grid='';
+    for(let i=0;i<=4;i++){const v=Math.round((i/4)*maxPts),y=gy(v);grid+=`<line x1="${PL}" y1="${y}" x2="${PL+cW}" y2="${y}" stroke="#30363d" stroke-width="1"/><text x="${PL-3}" y="${y+3}" text-anchor="end" fill="#8b949e" font-size="8">${v}</text>`;}
+    let lines='';
+    users.forEach((u,idx)=>{
+        const col=CHART_COLORS[idx%CHART_COLORS.length],isMe=u.token===myToken;
+        const pts=timeline.map((t,i)=>`${gx(i)},${gy(t.pts[u.id]||0)}`).join(' ');
+        lines+=`<polyline points="${pts}" fill="none" stroke="${col}" stroke-width="${isMe?2.5:1.5}" opacity="${isMe?1:.65}" stroke-linejoin="round"/>
+                <circle cx="${gx(n-1)}" cy="${gy(cum[u.id]||0)}" r="${isMe?4:2.5}" fill="${col}" opacity="${isMe?1:.65}"/>`;
+    });
+    const legend=users.map((u,idx)=>{
+        const col=CHART_COLORS[idx%CHART_COLORS.length],isMe=u.token===myToken;
+        return `<div style="display:flex;align-items:center;gap:5px;font-size:11px;${isMe?'font-weight:700;':''}">
+            <div style="width:16px;height:3px;background:${col};border-radius:2px;flex-shrink:0;"></div>
+            <span style="color:${isMe?col:'var(--text-muted)'}">${u.name}</span></div>`;
+    }).join('');
+    el.innerHTML=`<svg width="100%" viewBox="0 0 ${W} ${H}" style="overflow:visible;display:block;">${grid}${lines}</svg>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;">${legend}</div>`;
+}
+
+function renderH2HSelectors(data) {
+    const el=document.getElementById('h2h-content');
+    if(data.users.length<2){el.innerHTML='<p style="color:var(--text-muted);text-align:center;">Mindestens 2 Spieler nötig.</p>';return;}
+    const me=myToken?data.users.find(u=>u.token===myToken):null;
+    let html='';
+    if(me){
+        const others=data.users.filter(u=>u.id!==me.id).map(u=>`<option value="${u.id}">${u.name}</option>`).join('');
+        html=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+            <span style="font-weight:700;color:var(--accent-green);min-width:50px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${me.name}</span>
+            <span style="color:var(--text-muted);flex-shrink:0;">vs</span>
+            <select id="h2h-b" onchange="updateH2H()" style="flex:1;">${others}</select></div>`;
+    } else {
+        const opts=data.users.map(u=>`<option value="${u.id}">${u.name}</option>`).join('');
+        const opts2=data.users.slice(1).map(u=>`<option value="${u.id}">${u.name}</option>`).join('');
+        html=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+            <select id="h2h-a" onchange="updateH2H()" style="flex:1;">${opts}</select>
+            <span style="color:var(--text-muted);flex-shrink:0;">vs</span>
+            <select id="h2h-b" onchange="updateH2H()" style="flex:1;">${opts2}</select></div>`;
+    }
+    el.innerHTML=html+'<div id="h2h-result"></div>';
+    updateH2H();
+}
+
+function updateH2H() {
+    const data=globalData;if(!data)return;
+    const me=myToken?data.users.find(u=>u.token===myToken):null;
+    const selA=document.getElementById('h2h-a'),selB=document.getElementById('h2h-b');
+    const idA=me?me.id:(selA?selA.value:null),idB=selB?selB.value:null;
+    if(!idA||!idB||idA===idB)return;
+    const uA=data.users.find(u=>u.id===idA),uB=data.users.find(u=>u.id===idB);
+    if(!uA||!uB)return;
+    const finished=data.matches.filter(m=>m.finished).sort((a,b)=>a.kickoff-b.kickoff);
+    let wA=0,wB=0,dr=0,pA=0,pB=0;
+    const rows=finished.map(m=>{
+        const tA=data.tips.find(t=>t.matchId===m.id&&t.userId===uA.id);
+        const tB=data.tips.find(t=>t.matchId===m.id&&t.userId===uB.id);
+        const p1=tA?(tA.points||0):0,p2=tB?(tB.points||0):0;
+        pA+=p1;pB+=p2;
+        if(p1>p2)wA++;else if(p2>p1)wB++;else dr++;
+        const bg=p1>p2?'rgba(204,255,0,.04)':p2>p1?'rgba(255,0,77,.04)':'';
+        return `<div style="display:grid;grid-template-columns:1fr auto 1fr;gap:4px;align-items:center;padding:6px 2px;border-bottom:1px solid var(--border);font-size:12px;background:${bg};">
+            <span class="pts-badge pts-${p1}" style="text-align:center;margin:0">${p1}P</span>
+            <span style="color:var(--text-muted);font-size:10px;text-align:center;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f(m.teamA)}${dn(m.teamA).split(' ')[0]} vs ${dn(m.teamB).split(' ')[0]}${f(m.teamB)}</span>
+            <span class="pts-badge pts-${p2}" style="text-align:center;margin:0">${p2}P</span></div>`;
+    }).join('');
+    document.getElementById('h2h-result').innerHTML=`
+        <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;text-align:center;padding:12px;background:var(--bg);border-radius:10px;margin-bottom:10px;">
+            <div><div style="font-weight:700;font-size:14px;color:var(--accent-green);margin-bottom:4px;">${uA.name}</div>
+                <div style="font-size:30px;font-weight:900;color:var(--accent-green);">${wA}</div>
+                <div style="font-size:11px;color:var(--text-muted);">Siege</div>
+                <div style="font-size:18px;font-weight:700;color:var(--accent-green);margin-top:6px;">${pA}P</div></div>
+            <div style="display:flex;flex-direction:column;justify-content:center;align-items:center;gap:6px;">
+                <div style="font-size:11px;color:var(--text-muted);">Unentschieden</div>
+                <div style="font-size:20px;font-weight:700;color:var(--text-muted);">${dr}</div></div>
+            <div><div style="font-weight:700;font-size:14px;color:var(--accent);margin-bottom:4px;">${uB.name}</div>
+                <div style="font-size:30px;font-weight:900;color:var(--accent);">${wB}</div>
+                <div style="font-size:11px;color:var(--text-muted);">Siege</div>
+                <div style="font-size:18px;font-weight:700;color:var(--accent);margin-top:6px;">${pB}P</div></div>
+        </div>
+        ${finished.length?`<div style="max-height:280px;overflow-y:auto;border-radius:8px;border:1px solid var(--border);">
+            <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:4px;padding:6px 2px;background:var(--card-bg2);">
+                <span style="font-size:11px;font-weight:700;color:var(--accent-green);text-align:center;">${uA.name}</span><span></span>
+                <span style="font-size:11px;font-weight:700;color:var(--accent);text-align:center;">${uB.name}</span></div>${rows}</div>`
+            :'<p style="color:var(--text-muted);text-align:center;">Noch keine Spiele beendet.</p>'}`;
+}
+
+
+// ── Admin Subtab Navigation ───────────────────────────────────────────────────
+function switchAdminTab(id, btn) {
+    document.querySelectorAll('.admin-section').forEach(s => s.style.display = 'none');
+    document.getElementById(id).style.display = 'block';
+    document.querySelectorAll('.admin-nav-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+}
+// ── Admin ─────────────────────────────────────────────────────────────────────
+function renderAdminDashboard(data) {
+    const el=document.getElementById('admin-dashboard'),now=Date.now();
+    const upcoming=data.matches.filter(m=>!m.finished&&m.kickoff>now).sort((a,b)=>a.kickoff-b.kickoff).slice(0,20);
+    if(!upcoming.length){el.innerHTML='<p style="color:var(--accent-green);">Alle Spiele beendet 🎉</p>';return;}
+    el.innerHTML=upcoming.map(m=>{
+        const notTipped=data.users.filter(u=>!data.tips.find(t=>t.matchId===m.id&&t.userId===u.id&&t.tipA!==null));
+        const tLeft=m.kickoff-now,col=tLeft<7200000?'var(--accent)':tLeft<86400000?'#fb923c':'var(--border)';
+        const cd=formatCountdown(m.kickoff);
+        if(!notTipped.length) return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;">
+            <span style="color:var(--text-muted);">${f(m.teamA)}${dn(m.teamA).split(' ')[0]} vs ${dn(m.teamB).split(' ')[0]}</span>
+            <span style="color:var(--accent-green);font-weight:700;">✓ Alle</span></div>`;
+        return `<div style="padding:8px 0 8px 10px;border-bottom:1px solid var(--border);border-left:3px solid ${col};font-size:13px;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;">
+                <span style="font-weight:600;">${f(m.teamA)}${dn(m.teamA).split(' ')[0]} vs ${dn(m.teamB).split(' ')[0]}</span>
+                <span style="color:${col};font-size:12px;font-weight:700;">${cd}</span></div>
+            <div style="margin-top:3px;color:var(--accent);font-size:12px;">Fehlt: ${notTipped.map(u=>u.name).join(', ')}</div></div>`;
+    }).join('');
+}
+
+function renderAdmin(matches,users) {
+    renderAdminDashboard(globalData);
+    document.getElementById('admin-users-list').innerHTML=!users.length
+        ?'<p style="color:var(--text-muted);">Keine User.</p>'
+        :users.map(u=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);">
+            <div style="overflow:hidden;flex:1;min-width:0;">
+                <span style="font-weight:700;">${u.name}</span>
+                <span style="color:var(--accent-green);margin-left:8px;font-size:13px;">${u.points}P</span><br>
+                <small style="color:var(--text-muted);font-size:11px;user-select:all;">/?token=${u.token}</small>
+            </div>
+            <button class="btn-danger" style="height:32px;padding:0 10px;font-size:13px;flex-shrink:0;margin-left:8px;"
+                onclick="deleteUser('${u.id}','${u.name.replace(/'/g,"\\'")}')">Löschen</button>
+        </div>`).join('');
+    document.getElementById('admin-matches').innerHTML=matches.map(m=>{
+        return `
+        <div class="card" style="border-left:4px solid ${m.finished?'var(--accent-green)':'var(--border)'};">
+            <small style="color:var(--text-muted);display:block;margin-bottom:8px;">
+                ${new Date(m.kickoff).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})} Uhr
+                · ${m.type==='ko'?m.group:'Gruppe '+m.group}
+                ${m.finished?'<b style="color:var(--accent-green)"> ✓ Beendet</b>':''}
+            </small>
+            <div style="display:flex;gap:6px;margin-bottom:10px;align-items:center;">
+                <input type="text" id="admin-teamA-${m.id}" value="${m.teamA}" style="flex:1;">
+                <span style="color:var(--accent-green);font-weight:900;flex-shrink:0;">vs</span>
+                <input type="text" id="admin-teamB-${m.id}" value="${m.teamB}" style="flex:1;">
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                    <div style="font-size:10px;color:var(--text-muted);font-weight:700;text-transform:uppercase;margin-bottom:4px;">Ergebnis ${m.finished?'(leer = zurücksetzen)':''}</div>
+                    <div style="display:flex;align-items:center;">
+                        <input type="number" inputmode="numeric" pattern="[0-9]*" id="admin-resA-${m.id}" value="${m.resultA!==null?m.resultA:''}"
+                            oninput="if(this.value.length>=1){const n=document.getElementById('admin-resB-${m.id}');if(n){n.focus();n.select();}}">
+                        <span style="font-weight:900;margin:0 5px;color:var(--text-muted);">:</span>
+                        <input type="number" inputmode="numeric" pattern="[0-9]*" id="admin-resB-${m.id}" value="${m.resultB!==null?m.resultB:''}"
+                            oninput="if(this.value.length>=1)this.blur();">
+                    </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:5px;">
+                    <button class="btn-primary" onclick="submitResult('${m.id}')">Speichern</button>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// ── Header Stats ──────────────────────────────────────────────────────────────
+function updateHeaderStats(data) {
+    if(!myToken)return;
+    const me=data.users.find(u=>u.token===myToken);if(!me)return;
+    const sorted=[...data.users].sort((a,b)=>{
+        if(b.points!==a.points)return b.points-a.points;
+        if((b.exactTips||0)!==(a.exactTips||0))return(b.exactTips||0)-(a.exactTips||0);
+        return(b.tendTips||0)-(a.tendTips||0);
+    });
+    const rank=sorted.findIndex(u=>u.id===me.id)+1;
+    document.getElementById('user-stats').innerHTML=`
+        <span style="color:var(--text-muted)">Rang <b style="color:white">${rank}/${data.users.length}</b></span>
+        <span style="color:var(--text-muted)">Punkte <b style="color:var(--accent-green)">${me.points}</b></span>`;
+}
+
+// ── Data Refresh ──────────────────────────────────────────────────────────────
+async function refreshData() {
+    const url=myToken?`/api/daten?token=${myToken}`:`/api/daten?admin=${urlAdminPass}`;
+    const r=await fetch(url);if(!r.ok)return;
+    globalData=await r.json();
+    updateHeaderStats(globalData);
+    renderMatches(globalData);
+    renderGroups(globalData.matches);
+    renderRankings(globalData);
+    renderStats(globalData);
+    if(adminMode) renderAdmin(globalData.matches,globalData.users);
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+async function init() {
+    const p=new URLSearchParams(location.search);
+    myToken      = p.get('token') || '';
+    urlAdminPass = p.get('admin') || '';
+    const _saved      = getCookie('tippspiel_token') || localStorage.getItem('tippspiel_token');
+    const _savedAdmin = getCookie('tippspiel_admin');
+    if (!myToken && _saved)        myToken      = _saved;
+    // Admin-Cookie nur laden wenn KEIN User-Token vorhanden
+    if (!urlAdminPass && !myToken) urlAdminPass = _savedAdmin || '';
+    if(myToken){setCookie('tippspiel_token',myToken);localStorage.setItem('tippspiel_token',myToken);}
+    if(urlAdminPass) setCookie('tippspiel_admin',urlAdminPass);
+    if(urlAdminPass){
+        adminMode=true;
+        if(!document.getElementById('btn-admin')){
+            const btn=document.createElement('button');
+            btn.id='btn-admin';btn.innerHTML='⚙️<br>Admin';btn.onclick=()=>switchTab('tab-admin');
+            document.getElementById('bottom-nav').appendChild(btn);
+        }
+        document.getElementById('user-info').innerHTML='<strong>⚙️ Admin</strong>';
+        document.getElementById('user-stats').innerHTML='<span style="color:var(--accent-green)">Aktiv</span>';
+    }
+    if(!myToken&&!adminMode){
+        document.body.innerHTML=`<div style="text-align:center;margin-top:100px;padding:24px">
+            <div style="font-size:60px;margin-bottom:16px">⚽</div>
+            <h2 style="color:var(--accent-green)">WM 2026 Tippspiel</h2>
+            <p style="color:var(--text-muted)">Kein Zugriff – bitte gültigen Link nutzen.</p></div>`;
+        return;
+    }
+    try {
+        const url=myToken?`/api/daten?token=${myToken}`:`/api/daten?admin=${urlAdminPass}`;
+        const r=await fetch(url);if(!r.ok) throw new Error('Falsches Token/Passwort.');
+        globalData=await r.json();
+        if(myToken){
+            const user=globalData.users.find(u=>u.token===myToken);
+            if(!user) throw new Error('User nicht gefunden.');
+            document.getElementById('user-info').innerHTML=`<strong>${user.name}</strong>`;
+            updateHeaderStats(globalData);
+        }
+        renderMatches(globalData);renderGroups(globalData.matches);
+        renderRankings(globalData);renderStats(globalData);
+        if(adminMode) renderAdmin(globalData.matches,globalData.users);
+        if(adminMode&&!myToken) switchTab('tab-admin'); else switchTab('tab-matches');
+        // Push-Permission nach kurzem Delay anfragen (standalone mode check)
+        setTimeout(() => requestPushPermission(), 2000);
+    } catch(err){
+        document.getElementById('matches-list').innerHTML=`<p style="color:#ef4444;text-align:center;padding:40px;">⚠️ ${err.message}</p>`;
+        switchTab('tab-matches');
+    }
+}
+
+// ── Push Notifications ────────────────────────────────────────────────────────
+function urlBase64ToUint8Array(b64) {
+    const pad = '='.repeat((4 - b64.length % 4) % 4);
+    const base64 = (b64 + pad).replace(/-/g, '+').replace(/_/g, '/');
+    const raw = window.atob(base64);
+    return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+
+async function subscribePush() {
+    if (!('PushManager' in window) || !('serviceWorker' in navigator)) return;
+
+    // iOS kritisch: SW muss die Seite kontrollieren BEVOR subscribed wird
+    // Beim ersten Start nach Installation ist controller noch null → silent fail
+    if (!navigator.serviceWorker.controller) {
+        showToast('App schließen → neu öffnen → 🔔 nochmal tippen', 'error');
+        return;
+    }
+    try {
+        const r = await fetch('/api/push/vapid-key');
+        if (!r.ok) return;
+        const { publicKey } = await r.json();
+        const sw  = await navigator.serviceWorker.ready;
+        const sub = await sw.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(publicKey)
+        });
+        const tk = myToken || urlAdminPass;
+        await fetch('/api/push/subscribe', {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ subscription: sub, token: tk })
+        });
+        updatePushIcon(true);
+        showToast('Benachrichtigungen aktiviert ✓');
+    } catch { showToast('Push-Fehler – bitte nochmal versuchen.', 'error'); }
+}
+
+async function requestPushPermission() {
+    if (!('Notification' in window)) return;
+    if (Notification.permission === 'granted') { await subscribePush(); return; }
+    if (Notification.permission === 'denied')  return;
+    // Soft-Prompt: zeige Banner
+    const banner = document.getElementById('push-banner');
+    if (banner) banner.style.display = 'flex';
+}
+
+function updatePushIcon(active) {
+    const btn = document.getElementById('push-btn');
+    if (!btn) return;
+    btn.title = active ? 'Benachrichtigungen aktiv' : 'Benachrichtigungen aktivieren';
+    btn.style.color = active ? '#ccff00' : 'rgba(255,255,255,0.4)';
+}
+
+async function enablePush() {
+    document.getElementById('push-banner').style.display = 'none';
+    const perm = await Notification.requestPermission();
+    if (perm === 'granted') await subscribePush();
+}
+
+// ── Kommentare ────────────────────────────────────────────────────────────────
+function renderComments(data, matchId, myUserId) {
+    const comments = (data.comments || []).filter(c => c.matchId === matchId)
+        .sort((a,b) => a.createdAt - b.createdAt);
+
+    const rows = comments.map(c => {
+        const isOwn  = c.userId === myUserId;
+        const isAdm  = adminMode;
+        const time   = new Date(c.createdAt).toLocaleTimeString('de-DE', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+        return `<div style="display:flex;gap:6px;margin-bottom:6px;align-items:flex-start;">
+            <div style="flex:1;background:var(--bg);border-radius:8px;padding:7px 10px;font-size:13px;min-width:0;">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin-bottom:2px;">
+                    <span style="font-weight:700;color:${isOwn?'var(--accent-green)':'var(--text)'};font-size:12px;">${c.userName.replace(/</g,"&lt;").replace(/>/g,"&gt;")}</span>
+                    <span style="color:var(--text-muted);font-size:10px;flex-shrink:0;">${time}</span>
+                </div>
+                <span style="word-break:break-word;">${c.text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>
+            </div>
+            ${isOwn||isAdm?`<button onclick="deleteComment('${c.id}','${matchId}')"
+                style="height:24px;width:24px;padding:0;background:#b91c1c;border-radius:6px;flex-shrink:0;font-size:11px;margin-top:2px;">✕</button>`:''}
+        </div>`;
+    }).join('');
+
+    const inputHtml = myUserId ? `
+        <div style="display:flex;gap:6px;margin-top:6px;">
+            <input type="text" id="ci-${matchId}" placeholder="Kommentar..." maxlength="200"
+                style="flex:1;height:34px!important;font-size:13px!important;font-weight:400!important;text-align:left!important;padding:0 8px!important;"
+                onkeydown="if(event.key==='Enter')submitComment('${matchId}')">
+            <button onclick="submitComment('${matchId}')" style="height:34px;padding:0 10px;font-size:16px;">💬</button>
+        </div>` : '';
+
+    return `<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);">
+        ${rows}${inputHtml}
+    </div>`;
+}
+
+async function submitComment(matchId) {
+    const el = document.getElementById('ci-' + matchId);
+    if (!el || !el.value.trim()) return;
+    const text = el.value.trim();
+    try {
+        const r = await fetch('/api/comment', { method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ matchId, text, token: myToken }) });
+        const d = await r.json();
+        if (r.ok) { el.value = ''; await refreshData(); }
+        else showToast(d.error, 'error');
+    } catch { showToast('Netzwerkfehler', 'error'); }
+}
+
+async function deleteComment(commentId) {
+    try {
+        const r = await fetch(`/api/comment/${commentId}`, { method:'DELETE', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ token: myToken, adminPass: urlAdminPass }) });
+        if (r.ok) await refreshData();
+        else { const d = await r.json(); showToast(d.error, 'error'); }
+    } catch { showToast('Netzwerkfehler', 'error'); }
+}
+document.addEventListener('DOMContentLoaded', () => {
+    init();
+    // Auto-Refresh alle 60s wenn Seite sichtbar – pausiert bei offenem Schnelltippen
+    setInterval(() => {
+        if (document.visibilityState !== 'visible' || !globalData) return;
+        const qtOpen = document.getElementById('quicktip-overlay')?.style.display === 'block';
+        if (!qtOpen) refreshData();
+    }, 60000);
+});
+if('serviceWorker' in navigator){
+    window.addEventListener('load',()=>{
+        navigator.serviceWorker.register('/sw.js')
+            .catch(e=>console.warn('SW Fehler:',e));
+    });
+}
+</script>
+</body>
+</html>
