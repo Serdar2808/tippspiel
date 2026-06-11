@@ -169,19 +169,40 @@ setInterval(async () => {
 
 app.get('/api/daten', (req, res) => {
     const { token, admin } = req.query;
-    if (admin !== "GEHEIM123") {
+    const isAdmin = admin === "GEHEIM123";
+
+    let myUserId = null;
+    if (!isAdmin) {
         const check = db.prepare('SELECT id FROM users WHERE token = ?').get(token);
         if (!check) return res.status(403).json({ error: "Kein gueltiges Token" });
+        myUserId = check.id;
     }
+
     const matches = db.prepare(
         'SELECT id, type, group_name AS "group", teamA, teamB, kickoff, resultA, resultB, finished FROM matches'
     ).all();
     matches.forEach(m => m.finished = m.finished === 1); // Boolean fix fürs Frontend
 
+    // Fremde Tokens nicht an normale Spieler ausliefern (verhindert Impersonation)
+    const users = db.prepare('SELECT id, name, token, points, exactTips, tendTips FROM users').all();
+    if (!isAdmin) {
+        users.forEach(u => { if (u.id !== myUserId) u.token = null; });
+    }
+
+    // Fremde Tipps erst nach Anpfiff / Spielende sichtbar machen (Fairness)
+    const now = Date.now();
+    const startedIds = new Set(
+        db.prepare('SELECT id FROM matches WHERE kickoff <= ? OR finished = 1').all(now).map(m => m.id)
+    );
+    const tips = db.prepare('SELECT * FROM tips').all().map(t => {
+        if (isAdmin || t.userId === myUserId || startedIds.has(t.matchId)) return t;
+        return { ...t, tipA: null, tipB: null };
+    });
+
     res.json({
-        users: db.prepare('SELECT id, name, token, points, exactTips, tendTips FROM users').all(),
-        matches: matches,
-        tips: db.prepare('SELECT * FROM tips').all(),
+        users,
+        matches,
+        tips,
         reactions: db.prepare('SELECT * FROM reactions').all(),
         comments: db.prepare('SELECT * FROM comments').all()
     });
@@ -341,9 +362,9 @@ app.post('/api/reaction', async (req, res) => {
         if (existing.emoji === emoji) db.prepare('DELETE FROM reactions WHERE matchId = ? AND userId = ?').run(matchId, user.id);
         else db.prepare('UPDATE reactions SET emoji = ? WHERE matchId = ? AND userId = ?').run(emoji, matchId, user.id);
     } else {
-        db.prepare('INSERT INTO reactions (matchId, userId, emoji) VALUES (?, ?, ?)').run(matchId, user.id, emoji);
-        const others = db.prepare('SELECT id FROM users WHERE id != ?').all(user.id).map(u => u.id);
-		await sendPush([u.id], `⚽ ${teamA || match.teamA} ${pA}:${pB} ${teamB || match.teamB}`, body, 'result');    }
+		db.prepare('INSERT INTO reactions (matchId, userId, emoji) VALUES (?, ?, ?)').run(matchId, user.id, emoji);
+		const others = db.prepare('SELECT id FROM users WHERE id != ?').all(user.id).map(u => u.id);
+		await sendPush(others, `${emoji} ${user.name}`, `${match.teamA} vs ${match.teamB}`, 'reaction');    }
     res.json({ success: true });
 });
 
