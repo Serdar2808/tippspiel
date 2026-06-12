@@ -179,7 +179,7 @@ app.get('/api/daten', (req, res) => {
     }
 
     const matches = db.prepare(
-        'SELECT id, type, group_name AS "group", teamA, teamB, kickoff, resultA, resultB, finished FROM matches'
+        'SELECT id, type, group_name AS "group", teamA, teamB, kickoff, resultA, resultB, finished, liveA, liveB FROM matches'
     ).all();
     matches.forEach(m => m.finished = m.finished === 1); // Boolean fix fürs Frontend
 
@@ -208,6 +208,11 @@ app.get('/api/daten', (req, res) => {
     });
 });
 
+// Leichtgewichtiger Änderungs-Zähler: SQLite zählt jede Zeilenänderung selbst.
+// Clients pollen das statt der kompletten Daten und laden nur bei echter Änderung neu.
+app.get('/api/version', (req, res) => {
+    res.json({ v: db.prepare('SELECT total_changes() AS n').get().n });
+});
 
 // ── Push Endpoints ────────────────────────────────────────────────────────────
 
@@ -222,11 +227,11 @@ app.post('/api/push/subscribe', (req, res) => {
     const { subscription, token } = req.body;
     if (!subscription) return res.status(400).json({ error: 'Kein Subscription-Objekt' });
     
-    let userId = null;
-    if (token === 'GEHEIM123') userId = 'admin';
+	let userId = null, userName = null;
+    if (token === 'GEHEIM123') { userId = 'admin'; userName = 'Admin'; }
     else {
-        const user = db.prepare('SELECT id FROM users WHERE token = ?').get(token);
-        if (user) userId = user.id;
+        const user = db.prepare('SELECT id, name FROM users WHERE token = ?').get(token);
+        if (user) { userId = user.id; userName = user.name; }
     }
     if (!userId) return res.status(403).json({ error: 'Kein Zugriff' });
 
@@ -240,7 +245,7 @@ app.post('/api/push/subscribe', (req, res) => {
         ON CONFLICT(userId, endpoint) DO UPDATE SET subscription=excluded.subscription, device=excluded.device
     `).run({ userId, endpoint, subStr: JSON.stringify(subscription), device });
 
-    console.log(`✓ Push-Sub: ${userId} auf ${device}`);
+	console.log(`✓ Push-Sub: ${userName} auf ${device}`);
     res.json({ success: true });
 });
 
@@ -724,5 +729,11 @@ app.post('/api/einladung/register', (req, res) => {
     
     res.json({ success: true, user: newUser });
 });
+
+// ── WM-2026 Auto-Sync (OpenLigaDB) ───────────────────────────────────────────
+require('./wm-autosync')(
+    { db, calcPoints, recalcAllUsers, sendPush, parseScore },
+    { leagueShortcut: 'wm26', season: '2026', live: true, pollSec: 60, dryRun: true }
+);
 
 app.listen(PORT, () => console.log(`🚀 WM-Tippspiel Server läuft mit SQLite auf Port ${PORT}`));

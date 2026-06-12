@@ -493,7 +493,7 @@ function renderTodayOverview(data) {
         const tip=me?data.tips.find(t=>t.matchId===m.id&&t.userId===me.id&&t.tipA!==null):null;
         const time=new Date(m.kickoff).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
         const status=m.finished?`<span style="color:var(--accent-green);font-weight:700">${m.resultA}:${m.resultB} ✓</span>`
-            :isLive?'<span class="live-badge">🔴 Live</span>'
+            :isLive?`<span class="live-badge">🔴 ${m.liveA!=null?`${m.liveA}:${m.liveB}`:'Live'}</span>`
             :tip?`<span style="color:var(--accent-green);font-size:12px">✓ ${tip.tipA}:${tip.tipB}</span>`
             :'<span style="color:var(--text-muted);font-size:12px">– kein Tipp</span>';
         return `<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid var(--border);font-size:13px;">
@@ -695,12 +695,26 @@ async function saveAllTips() {
     showToast(`${saved} Tipps gespeichert${errors>0?' · '+errors+' Fehler':''}`);
 }
 
+// ── Mitteilungs-Badge: "zuletzt gesehen" pro Spiel (lokal je Gerät) ───────────
+function getSeenMap(){ try{ return JSON.parse(localStorage.getItem('tip_seen')||'{}'); }catch{ return {}; } }
+function markSeen(data, matchId){
+    const map = getSeenMap();
+    const cs  = (data?.comments||[]).filter(c => c.matchId === matchId);
+    map[matchId] = cs.length ? Math.max(...cs.map(c => c.createdAt)) : Date.now();
+    localStorage.setItem('tip_seen', JSON.stringify(map));
+}
 
 // ── Social Toggle (Reaktionen + Kommentare) ───────────────────────────────────
 function toggleSocial(matchId) {
     const el = document.getElementById('social-' + matchId);
     if (!el) return;
-    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+    const opening = el.style.display === 'none';
+    el.style.display = opening ? 'block' : 'none';
+    if (opening) {
+        markSeen(globalData, matchId);
+        const b = document.getElementById('cbadge-' + matchId);  // Badge sofort entfernen
+        if (b) b.remove();
+    }
 }
 
 // ── Auto-Advance Tipp-Felder (Spiele Tab) ────────────────────────────────────
@@ -824,13 +838,21 @@ function renderMatches(data) {
             resultHtml=`<div style="text-align:center;margin:6px 0 4px;">
                 <span style="font-size:24px;font-weight:900;color:var(--accent-green);">${m.resultA}:${m.resultB}</span>${badge}</div>`;
         }
+        // Live-Stand (eigene Felder, nie Wertung) – nur wenn aktiv und noch nicht beendet
+        const liveHtml = (!m.finished && m.liveA != null) ? `<div style="text-align:center;margin:6px 0 4px;">
+                <span style="font-size:24px;font-weight:900;color:var(--accent);">${m.liveA}:${m.liveB}</span>
+                <span style="font-size:10px;color:var(--text-muted);margin-left:6px;vertical-align:middle;">🔴 Live · ggf. verzögert</span></div>` : '';
         // Vorhersagen (nach Anpfiff)
         const predHtml = isLocked ? renderPredictions(data, m.id, m.teamA, m.teamB) : '';
         // Reaktionen + Kommentare immer verfügbar
-        const reactionCount = (data.reactions||[]).filter(r=>r.matchId===m.id).length;
-        const commentCount  = (data.comments ||[]).filter(c=>c.matchId===m.id).length;
-        const socialCount   = reactionCount + commentCount;
-        const socialBadge   = socialCount > 0 ? `<span style="font-size:10px;background:var(--accent);color:white;border-radius:10px;padding:1px 5px;margin-left:2px;font-weight:700;">${socialCount}</span>` : '';
+		// Mitteilungs-Badge: nur UNGELESENE fremde Kommentare (seit letztem Öffnen)
+        const _seenTs = getSeenMap()[m.id] || 0;
+        const unreadComments = (data.comments||[]).filter(c =>
+            c.matchId === m.id && c.createdAt > _seenTs && c.userId !== (me ? me.id : null)
+        ).length;
+        const socialBadge = unreadComments > 0
+            ? `<span id="cbadge-${m.id}" style="font-size:10px;background:#ef4444;color:white;border-radius:10px;padding:1px 5px;margin-left:2px;font-weight:700;">${unreadComments}</span>`
+            : '';
         const borderColor=m.finished?'var(--accent-green)':isLive?'var(--accent)':isTBA?'#21262d':isLocked?'#4b3060':'#16a34a';
         return `<div class="card" style="border-left:4px solid ${borderColor};">
             <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;">
@@ -838,7 +860,7 @@ function renderMatches(data) {
                 ${isLive?'<span class="live-badge">🔴 Live</span>':(!isLocked&&cd?`<span class="countdown-timer" data-kickoff="${m.kickoff}" style="color:#fb923c;font-weight:700;font-size:12px;">${cd}</span>`:'')}
             </div>
             <strong style="font-size:1.05rem;display:block;text-align:center;margin:6px 0;">${isTBA?'⏳ Teams noch nicht bekannt':`${f(m.teamA)} ${dn(m.teamA)} vs ${dn(m.teamB)} ${f(m.teamB)}`}</strong>
-            ${resultHtml}${predHtml}
+            ${resultHtml}${liveHtml}${predHtml}
             <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;">
                 ${isTBA?'<div style="color:var(--text-muted);font-size:12px;font-style:italic;">Tipp wird freigeschaltet sobald Teams feststehen</div>':me?`<div>
                     <div style="font-size:10px;color:var(--text-muted);font-weight:700;text-transform:uppercase;margin-bottom:3px;">Mein Tipp</div>
@@ -1353,21 +1375,35 @@ async function deleteComment(commentId) {
         else { const d = await r.json(); showToast(d.error, 'error'); }
     } catch { showToast('Netzwerkfehler', 'error'); }
 }
-document.addEventListener('DOMContentLoaded', () => {
-    init();
-    // Auto-Refresh alle 60s wenn Seite sichtbar – pausiert bei offenem Schnelltippen
-    setInterval(() => {
-        if (document.visibilityState !== 'visible' || !globalData) return;
-        const qtOpen = document.getElementById('quicktip-overlay')?.style.display === 'block';
-        if (!qtOpen) refreshData();
-    }, 60000);
-});
-if('serviceWorker' in navigator){
-    window.addEventListener('load',()=>{
-        navigator.serviceWorker.register('/sw.js')
-            .catch(e=>console.warn('SW Fehler:',e));
-    });
+// ── Änderungsbasierter Refresh ────────────────────────────────────────────────
+// Pollt nur den winzigen Versions-Zähler (eine Zahl) und lädt die vollen Daten
+// ausschließlich dann neu, wenn sich serverseitig wirklich etwas geändert hat.
+let lastVersion = null;
+async function checkForUpdates() {
+    if (document.visibilityState !== 'visible' || !globalData) return;
+    // Schnelltippen nicht stören – würde sonst die Eingabe verwerfen
+    if (document.getElementById('quicktip-overlay')?.style.display === 'block') return;
+    try {
+        const r = await fetch('/api/version');
+        if (!r.ok) return;
+        const { v } = await r.json();
+        if (lastVersion === null) { lastVersion = v; return; } // erster Lauf: nur merken
+        if (v !== lastVersion) { lastVersion = v; await refreshData(); }
+    } catch { /* offline o.ä. – einfach den nächsten Versuch abwarten */ }
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    init().finally(() => {
+        // Basis-Version direkt nach dem ersten Laden setzen
+        fetch('/api/version').then(r => r.json()).then(d => { lastVersion = d.v; }).catch(() => {});
+        setInterval(checkForUpdates, 10000); // alle 10s nach Änderungen schauen
+    });
+});
+
+// Beim Zurückkehren in die App sofort prüfen, statt bis zu 10s zu warten
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') checkForUpdates();
+});
 </script>
 </body>
 </html>
