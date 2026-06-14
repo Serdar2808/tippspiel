@@ -33,6 +33,27 @@ app.use(express.static(__dirname));
 const db = new Database(DB_FILE);
 db.pragma('journal_mode = WAL'); // Aktiviert High-Performance Schreibmodus
 
+// Tipp-Reaktionen: User reagieren auf die Tipps anderer User (erst nach Anpfiff sichtbar)
+db.exec(`CREATE TABLE IF NOT EXISTS tip_reactions (
+    matchId      TEXT NOT NULL,
+    targetUserId TEXT NOT NULL,
+    userId       TEXT NOT NULL,
+    emoji        TEXT NOT NULL,
+    PRIMARY KEY (matchId, targetUserId, userId)
+)`);
+
+// Mitteilungszentrale: spiegelt push-würdige Ereignisse pro Empfänger
+db.exec(`CREATE TABLE IF NOT EXISTS notifications (
+    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    userId    TEXT NOT NULL,
+    type      TEXT NOT NULL,
+    title     TEXT,
+    body      TEXT,
+    matchId   TEXT,
+    createdAt INTEGER NOT NULL
+)`);
+db.exec('CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications (userId, createdAt)');
+
 // ── Punkte-Berechnung ─────────────────────────────────────────────────────────
 function calcPoints(tipA, tipB, resultA, resultB) {
     if (tipA === null || tipB === null) return 0;
@@ -93,6 +114,24 @@ async function sendPush(userIds, title, body, tag = 'general') {
             }
         }
     }));
+}
+
+// ── Mitteilungs-Helper ────────────────────────────────────────────────────────
+// Schreibt pro Empfänger eine Notification-Zeile und hält je User nur die letzten 50.
+const MAX_NOTIFS_PER_USER = 50;
+const insertNotif = db.prepare('INSERT INTO notifications (userId, type, title, body, matchId, createdAt) VALUES (?, ?, ?, ?, ?, ?)');
+const trimNotifs  = db.prepare(`DELETE FROM notifications WHERE userId = ? AND id NOT IN
+    (SELECT id FROM notifications WHERE userId = ? ORDER BY createdAt DESC, id DESC LIMIT ?)`);
+function notify(userIds, type, title, body, matchId = null) {
+    if (!Array.isArray(userIds) || !userIds.length) return;
+    const now = Date.now();
+    const tx = db.transaction(ids => {
+        for (const uid of ids) {
+            insertNotif.run(uid, type, title, body, matchId, now);
+            trimNotifs.run(uid, uid, MAX_NOTIFS_PER_USER);
+        }
+    });
+    tx(userIds);
 }
 
 // ── Letzte-Chance-Interval (alle 5 Min prüfen) ────────────────────────────────
@@ -204,7 +243,11 @@ app.get('/api/daten', (req, res) => {
         matches,
         tips,
         reactions: db.prepare('SELECT * FROM reactions').all(),
-        comments: db.prepare('SELECT * FROM comments').all()
+        tipReactions: db.prepare('SELECT * FROM tip_reactions').all(),
+        comments: db.prepare('SELECT * FROM comments').all(),
+        notifications: myUserId
+            ? db.prepare('SELECT id, type, title, body, matchId, createdAt FROM notifications WHERE userId = ? ORDER BY createdAt DESC, id DESC LIMIT ?').all(myUserId, MAX_NOTIFS_PER_USER)
+            : []
     });
 });
 
@@ -271,6 +314,41 @@ app.post('/api/tip', (req, res) => {
     res.json({ success: true });
 });
 
+// ── Admin: Tipp nachträglich ändern/setzen/löschen ────────────────────────────
+app.post('/api/admin/tip', (req, res) => {
+    const { userId, matchId, tipA, tipB, adminPass } = req.body;
+    if (adminPass !== "GEHEIM123") return res.status(403).json({ error: "Falsches Admin-Passwort" });
+
+    const user = db.prepare('SELECT id FROM users WHERE id = ?').get(userId);
+    if (!user) return res.status(404).json({ error: "User nicht gefunden" });
+
+    const match = db.prepare('SELECT resultA, resultB, finished FROM matches WHERE id = ?').get(matchId);
+    if (!match) return res.status(404).json({ error: "Spiel nicht gefunden" });
+
+    // Leer = Tipp entfernen
+    if (tipA === "" || tipA === null || tipB === "" || tipB === null) {
+        db.prepare('DELETE FROM tips WHERE userId = ? AND matchId = ?').run(userId, matchId);
+        if (match.finished === 1) recalcAllUsers.run();
+        return res.json({ success: true, removed: true });
+    }
+
+    const pA = parseScore(tipA), pB = parseScore(tipB);
+    if (pA === undefined || pB === undefined) return res.status(400).json({ error: "Ungültiger Tipp (0-30)" });
+
+    // Punkte sofort berechnen, falls Spiel schon beendet
+    const points = match.finished === 1 ? calcPoints(pA, pB, match.resultA, match.resultB) : 0;
+
+    db.prepare(`
+        INSERT INTO tips (userId, matchId, tipA, tipB, points)
+        VALUES (@userId, @matchId, @tipA, @tipB, @points)
+        ON CONFLICT(userId, matchId) DO UPDATE SET tipA=excluded.tipA, tipB=excluded.tipB, points=excluded.points
+    `).run({ userId, matchId, tipA: pA, tipB: pB, points });
+
+    if (match.finished === 1) recalcAllUsers.run();
+
+    res.json({ success: true });
+});
+
 // ── User anlegen ──────────────────────────────────────────────────────────────
 app.post('/api/admin/user', (req, res) => {
     const { newUserName, adminPass } = req.body;
@@ -297,6 +375,8 @@ app.delete('/api/admin/user/:id', (req, res) => {
         db.prepare('DELETE FROM users WHERE id = ?').run(userId);
         db.prepare('DELETE FROM tips WHERE userId = ?').run(userId);
         db.prepare('DELETE FROM reactions WHERE userId = ?').run(userId);
+        db.prepare('DELETE FROM tip_reactions WHERE userId = ? OR targetUserId = ?').run(userId, userId);
+        db.prepare('DELETE FROM notifications WHERE userId = ?').run(userId);
         db.prepare('DELETE FROM comments WHERE userId = ?').run(userId);
         db.prepare('DELETE FROM push_subscriptions WHERE userId = ?').run(userId);
     });
@@ -344,7 +424,9 @@ app.post('/api/admin/result', async (req, res) => {
         for (const u of users) {
             const tip = db.prepare('SELECT tipA, tipB, points FROM tips WHERE matchId = ? AND userId = ?').get(matchId, u.id);
             const body = tip && tip.tipA !== null ? `${ptLabels[tip.points]} (Tipp: ${tip.tipA}:${tip.tipB})` : '⚪ Kein Tipp abgegeben';
-            await sendPush([u.id], `⚽ ${match.teamA || teamA} ${pA}:${pB} ${match.teamB || teamB}`, body, 'result');
+            const title = `⚽ ${match.teamA || teamA} ${pA}:${pB} ${match.teamB || teamB}`;
+            await sendPush([u.id], title, body, 'result');
+            notify([u.id], 'result', title, body, matchId);
         }
     }
     res.json({ success: true });
@@ -369,7 +451,44 @@ app.post('/api/reaction', async (req, res) => {
     } else {
 		db.prepare('INSERT INTO reactions (matchId, userId, emoji) VALUES (?, ?, ?)').run(matchId, user.id, emoji);
 		const others = db.prepare('SELECT id FROM users WHERE id != ?').all(user.id).map(u => u.id);
-		await sendPush(others, `${emoji} ${user.name}`, `${match.teamA} vs ${match.teamB}`, 'reaction');    }
+		await sendPush(others, `${emoji} ${user.name}`, `${match.teamA} vs ${match.teamB}`, 'reaction');
+		notify(others, 'reaction', `${emoji} ${user.name}`, `${match.teamA} vs ${match.teamB}`, matchId);
+	}
+    res.json({ success: true });
+});
+
+// ── Tipp-Reaktionen ───────────────────────────────────────────────────────────
+app.post('/api/tip-reaction', async (req, res) => {
+    const { matchId, targetUserId, emoji, token } = req.body;
+    const user = db.prepare('SELECT id, name FROM users WHERE token = ?').get(token);
+    if (!user) return res.status(403).json({ error: "Kein Zugriff" });
+
+    const match = db.prepare('SELECT teamA, teamB, kickoff, finished FROM matches WHERE id = ?').get(matchId);
+    if (!match) return res.status(404).json({ error: "Spiel nicht gefunden" });
+
+    // Fairness-Gate: auf Tipps darf erst nach Anpfiff / Spielende reagiert werden
+    if (match.kickoff > Date.now() && match.finished !== 1)
+        return res.status(403).json({ error: "Tipps noch nicht sichtbar" });
+
+    const target = db.prepare('SELECT id, name FROM users WHERE id = ?').get(targetUserId);
+    if (!target) return res.status(404).json({ error: "User nicht gefunden" });
+
+    const allowed = ['😀','😂','🙁','😭','😡','😳','🤑','👍','👏','💪','👎'];
+    if (!allowed.includes(emoji)) return res.status(400).json({ error: "Ungültiges Emoji" });
+
+    const existing = db.prepare('SELECT emoji FROM tip_reactions WHERE matchId = ? AND targetUserId = ? AND userId = ?').get(matchId, targetUserId, user.id);
+    if (existing) {
+        if (existing.emoji === emoji) db.prepare('DELETE FROM tip_reactions WHERE matchId = ? AND targetUserId = ? AND userId = ?').run(matchId, targetUserId, user.id);
+        else db.prepare('UPDATE tip_reactions SET emoji = ? WHERE matchId = ? AND targetUserId = ? AND userId = ?').run(emoji, matchId, targetUserId, user.id);
+    } else {
+        db.prepare('INSERT INTO tip_reactions (matchId, targetUserId, userId, emoji) VALUES (?, ?, ?, ?)').run(matchId, targetUserId, user.id, emoji);
+        // Push nur beim ersten Setzen und nicht bei Reaktion auf eigenen Tipp
+        if (target.id !== user.id) {
+            const body = `reagiert auf deinen Tipp: ${match.teamA} vs ${match.teamB}`;
+            await sendPush([target.id], `${emoji} ${user.name}`, body, 'tip-reaction');
+            notify([target.id], 'tip-reaction', `${emoji} ${user.name}`, body, matchId);
+        }
+    }
     res.json({ success: true });
 });
 
@@ -391,6 +510,7 @@ app.post('/api/comment', async (req, res) => {
     const others = db.prepare('SELECT id FROM users WHERE id != ?').all(user.id).map(u => u.id);
     const preview = trimmed.length > 60 ? trimmed.substring(0, 57) + '...' : trimmed;
     await sendPush(others, `💬 ${user.name}`, `${match.teamA} vs ${match.teamB}: "${preview}"`, 'comment');
+    notify(others, 'comment', `💬 ${user.name}`, `${match.teamA} vs ${match.teamB}: "${preview}"`, matchId);
     
     res.json({ success: true, comment });
 });

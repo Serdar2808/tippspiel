@@ -85,6 +85,9 @@
             padding:20px;overflow-y:auto;position:relative;border:1px solid var(--border);box-shadow:0 20px 40px rgba(0,0,0,.6); }
         .modal-close { position:absolute;top:14px;right:14px;background:#b91c1c;width:30px;height:30px;
             border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center; }
+        #tip-react-popup { display:none;position:fixed;z-index:1100;background:var(--card-bg);border:1px solid var(--border);
+            border-radius:10px;padding:8px;gap:6px;flex-wrap:wrap;width:max-content;max-width:232px;
+            box-shadow:0 8px 24px rgba(0,0,0,.6); }
         #rules-overlay { display:none;position:fixed;top:0;left:0;width:100%;height:100%;
             background:rgba(0,0,0,.8);z-index:1000;align-items:center;justify-content:center;backdrop-filter:blur(4px); }
         #rules-box { background:var(--card-bg);width:88%;max-width:420px;max-height:85%;border-radius:14px;
@@ -181,8 +184,8 @@
             style="background:transparent;border:1px solid rgba(255,255,255,.3);color:white;
                    border-radius:50%;width:28px;height:28px;min-width:28px;padding:0;
                    font-size:14px;display:flex;align-items:center;justify-content:center;">ℹ</button>
-        <button id="push-btn" onclick="requestPushPermission()" title="Benachrichtigungen"
-            style="background:transparent;border:none;color:rgba(255,255,255,.4);font-size:18px;padding:0;width:28px;height:28px;cursor:pointer;">🔔</button>
+        <button id="bell-btn" onclick="openNotifCenter()" title="Mitteilungen"
+            style="position:relative;background:transparent;border:none;color:rgba(255,255,255,.7);font-size:18px;padding:0;width:28px;height:28px;cursor:pointer;">🔔<span id="notif-count" style="display:none;position:absolute;top:-3px;right:-5px;background:#ef4444;color:#fff;font-size:9px;font-weight:700;min-width:15px;height:15px;line-height:15px;border-radius:8px;padding:0 3px;box-sizing:border-box;text-align:center;"></span></button>
     </div>
 </div>
 <div id="toast"></div>
@@ -193,6 +196,14 @@
         <button class="modal-close" onclick="closeModal()">✕</button>
         <h3 id="modal-title" style="margin-top:0;color:var(--accent-green);font-size:15px;line-height:1.4;"></h3>
         <div id="modal-content"></div>
+    </div>
+</div>
+<div id="tip-react-popup"></div>
+<div id="notif-overlay" onclick="if(event.target===this)closeNotifCenter()" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.8);z-index:1050;align-items:flex-start;justify-content:center;backdrop-filter:blur(4px);">
+    <div style="background:var(--card-bg);width:92%;max-width:440px;max-height:82%;margin-top:calc(56px + env(safe-area-inset-top));border-radius:14px;padding:16px;overflow-y:auto;position:relative;border:1px solid var(--border);box-shadow:0 20px 40px rgba(0,0,0,.6);">
+        <button class="modal-close" onclick="closeNotifCenter()">✕</button>
+        <h3 style="margin:0 0 12px;color:var(--accent-green);font-size:16px;">🔔 Mitteilungen</h3>
+        <div id="notif-list"></div>
     </div>
 </div>
 
@@ -235,19 +246,19 @@
         </div>
         <div class="rules-section">
             <h4>💰 Gewinnausschüttung</h4>
-			<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">Einsatz: 25 € pro Spieler · Gesamttopf: 575 €</div>
+			<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">Einsatz: 25 € pro Spieler · Gesamttopf: 600 €</div>
 			<table style="margin-top:0;">
 				<thead><tr><th style="width:30%;text-align:left;">Platz</th><th style="width:25%;">Anteil</th><th style="width:45%;">23 Spieler</th></tr></thead>
 				<tbody>
-					<tr><td>🥇 1.</td><td>30%</td><td><b style="color:#ccff00">173€</b></td></tr>
-					<tr><td>🥈 2.</td><td>18%</td><td><b style="color:#c0c0c0">103€</b></td></tr>
-					<tr><td>🥉 3.</td><td>12%</td><td><b style="color:#cd7f32">69€</b></td></tr>
-					<tr><td>4.</td><td>9%</td><td>52€</td></tr>
-					<tr><td>5.</td><td>8%</td><td>46€</td></tr>
-					<tr><td>6.</td><td>7%</td><td>40€</td></tr>
-					<tr><td>7.</td><td>6%</td><td>34€</td></tr>
-					<tr><td>8.</td><td>5%</td><td>29€</td></tr>
-					<tr><td>9.</td><td>3%</td><td>17€</td></tr>
+					<tr><td>🥇 1.</td><td>30%</td><td><b style="color:#ccff00">180€</b></td></tr>
+					<tr><td>🥈 2.</td><td>18%</td><td><b style="color:#c0c0c0">108€</b></td></tr>
+					<tr><td>🥉 3.</td><td>12%</td><td><b style="color:#cd7f32">72€</b></td></tr>
+					<tr><td>4.</td><td>9%</td><td>54€</td></tr>
+					<tr><td>5.</td><td>8%</td><td>48€</td></tr>
+					<tr><td>6.</td><td>7%</td><td>42€</td></tr>
+					<tr><td>7.</td><td>6%</td><td>36€</td></tr>
+					<tr><td>8.</td><td>5%</td><td>30€</td></tr>
+					<tr><td>9.</td><td>3%</td><td>18€</td></tr>
 					<tr><td>10.</td><td>2%</td><td>12€</td></tr>
 				</tbody>
 			</table>
@@ -336,6 +347,7 @@
         <button class="admin-nav-btn active" onclick="switchAdminTab('adm-dashboard',this)">📋 Dashboard</button>
         <button class="admin-nav-btn" onclick="switchAdminTab('adm-users',this)">👥 User</button>
         <button class="admin-nav-btn" onclick="switchAdminTab('adm-results',this)">⚽ Ergebnisse</button>
+        <button class="admin-nav-btn" onclick="switchAdminTab('adm-tips',this)">✏️ Tipps</button>
     </div>
     
     <div id="adm-dashboard" class="admin-section" style="display:block;">
@@ -373,6 +385,18 @@
     <div id="adm-results" class="admin-section">
         <div id="admin-matches"></div>
     </div>
+
+    <div id="adm-tips" class="admin-section">
+        <div class="card" style="border-left:4px solid #fb923c;">
+            <h3>✏️ Tipps nachträglich ändern</h3>
+            <p style="font-size:13px;color:var(--text-muted);margin-top:0;margin-bottom:12px;">
+                Spiel wählen und Tipps korrigieren. Leer lassen = Tipp entfernen.
+                Bei beendeten Spielen werden die Punkte automatisch neu berechnet.
+            </p>
+            <select id="admin-tip-match" onchange="renderAdminTipEditor()" style="width:100%;margin-bottom:14px;"></select>
+            <div id="admin-tip-editor"></div>
+        </div>
+    </div>
 </div>
 
 <nav class="bottom-nav" id="bottom-nav">
@@ -384,11 +408,12 @@
 
 <script>
 // ── Konstanten ──────────────────────────────────────────────────────────────
-const flags = {"Mexiko":"🇲🇽","Südkorea":"🇰🇷","Südafrika":"🇿🇦","Tschechien":"🇨🇿","Kanada":"🇨🇦","Schweiz":"🇨🇭","Katar":"🇶🇦","Bosnien und Herzegowina":"🇧🇦","Brasilien":"🇧🇷","Marokko":"🇲🇦","Schottland":"🏴󠁧󠁢󠁳󠁣󠁴󠁿","Haiti":"🇭🇹","USA":"🇺🇸","Australien":"🇦🇺","Paraguay":"🇵🇾","Türkei":"🇹🇷","Deutschland":"🇩🇪","Ecuador":"🇪🇨","Elfenbeinküste":"🇨🇮","Curaçao":"🇨🇼","Niederlande":"🇳🇱","Japan":"🇯🇵","Tunesien":"🇹🇳","Schweden":"🇸🇪","Belgien":"🇧🇪","Iran":"🇮🇷","Ägypten":"🇪🇬","Neuseeland":"🇳🇿","Spanien":"🇪🇸","Uruguay":"🇺🇾","Saudi-Arabien":"🇸🇦","Kap Verde":"🇨🇻","Frankreich":"🇫🇷","Senegal":"🇸🇳","Norwegen":"🇳🇴","Irak":"🇮🇶","Argentinien":"🇦🇷","Österreich":"🇦🇹","Algerien":"🇩🇿","Jordanien":"🇯🇴","Portugal":"🇵🇹","Kolumbien":"🇨🇴","Usbekistan":"🇺🇿","DR Kongo":"🇨🇩","England":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","Kroatien":"🇭🇷","Panama":"🇵🇦","Ghana":"🇬🇭"};
+const flags = {"Mexiko":"🇲🇽","Südkorea":"🇰🇷","Südafrika":"🇿🇦","Tschechien":"🇨🇿","Kanada":"🇨🇦","Schweiz":"🇨🇭","Katar":"🇶🇦","Bosnien und Herzegowina":"🇧🇦","Bosnien":"🇧🇦","Brasilien":"🇧🇷","Marokko":"🇲🇦","Schottland":"🏴󠁧󠁢󠁳󠁣󠁴󠁿","Haiti":"🇭🇹","USA":"🇺🇸","Australien":"🇦🇺","Paraguay":"🇵🇾","Türkei":"🇹🇷","Deutschland":"🇩🇪","Ecuador":"🇪🇨","Elfenbeinküste":"🇨🇮","Curaçao":"🇨🇼","Niederlande":"🇳🇱","Japan":"🇯🇵","Tunesien":"🇹🇳","Schweden":"🇸🇪","Belgien":"🇧🇪","Iran":"🇮🇷","Ägypten":"🇪🇬","Neuseeland":"🇳🇿","Spanien":"🇪🇸","Uruguay":"🇺🇾","Saudi-Arabien":"🇸🇦","Kap Verde":"🇨🇻","Frankreich":"🇫🇷","Senegal":"🇸🇳","Norwegen":"🇳🇴","Irak":"🇮🇶","Argentinien":"🇦🇷","Österreich":"🇦🇹","Algerien":"🇩🇿","Jordanien":"🇯🇴","Portugal":"🇵🇹","Kolumbien":"🇨🇴","Usbekistan":"🇺🇿","DR Kongo":"🇨🇩","England":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","Kroatien":"🇭🇷","Panama":"🇵🇦","Ghana":"🇬🇭"};
 const CHART_COLORS=['#ccff00','#38bdf8','#fb923c','#f472b6','#a78bfa','#34d399','#fbbf24','#ef4444','#818cf8','#2dd4bf','#fb7185','#a3e635','#c084fc','#67e8f9','#86efac','#fde68a','#f9a8d4','#6ee7b7','#fca5a5','#93c5fd'];
 const REACTION_EMOJIS = ['🎯','😭','🔥','😱','🤩','😤'];
+const TIP_REACTION_EMOJIS = ['😀','😂','🙁','😭','😡','😳','🤑','👍','👏','💪','👎'];
 
-let globalData=null, adminMode=false, urlAdminPass='', myToken='', currentFilter='offen', currentRankingPhase='all';
+let globalData=null, adminMode=false, urlAdminPass='', myToken='', currentFilter='offen', currentRankingPhase='all', adminTipMatchId='';
 
 // ── Hilfsfunktionen ─────────────────────────────────────────────────────────
 // Anzeigename: Bosnien und Herzegowina → Bosnien
@@ -410,7 +435,7 @@ function showToast(msg,type='success') {
     clearTimeout(_toastTimer);
     _toastTimer=setTimeout(()=>el.className='',3000);
 }
-function closeModal() { document.getElementById('modal-overlay').style.display='none'; }
+function closeModal() { document.getElementById('modal-overlay').style.display='none'; closeTipPopup(); }
 
 function formatCountdown(kickoff) {
     const diff=kickoff-Date.now(); if(diff<=0) return null;
@@ -487,8 +512,11 @@ function renderTodayOverview(data) {
     const te=new Date(ts);te.setDate(te.getDate()+1);
     const today=data.matches.filter(m=>m.kickoff>=ts.getTime()&&m.kickoff<te.getTime()).sort((a,b)=>a.kickoff-b.kickoff);
     if(!today.length){el.style.display='none';return;}
+    // Laufende Spiele stehen oben als volle Karte → hier nur die übrigen auflisten, Zählung bleibt vollständig
+    const visible=today.filter(m=>!(!m.finished&&m.kickoff<=now&&now<=m.kickoff+115*60000));
+    if(!visible.length){el.style.display='none';return;}
     const me=myToken?data.users.find(u=>u.token===myToken):null;
-    const rows=today.map(m=>{
+    const rows=visible.map(m=>{
         const isLive=!m.finished&&m.kickoff<=now&&now<=m.kickoff+115*60000;
         const tip=me?data.tips.find(t=>t.matchId===m.id&&t.userId===me.id&&t.tipA!==null):null;
         const time=new Date(m.kickoff).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
@@ -610,6 +638,42 @@ async function react(matchId, emoji) {
         else { const d=await r.json(); showToast(d.error,'error'); }
     } catch { showToast('Netzwerkfehler','error'); }
 }
+
+async function tipReact(matchId, targetUserId, emoji) {
+    if(!myToken){showToast('Nur für angemeldete User','error');return;}
+    closeTipPopup();
+    try {
+        const r=await fetch('/api/tip-reaction',{method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({matchId,targetUserId,emoji,token:myToken})});
+        if(r.ok){ await refreshData(); showTips(matchId); }
+        else { const d=await r.json(); showToast(d.error,'error'); }
+    } catch { showToast('Netzwerkfehler','error'); }
+}
+
+function openTipPopup(ev, matchId, targetUserId, myEmoji) {
+    ev.stopPropagation();
+    const pop=document.getElementById('tip-react-popup');
+    if(!pop) return;
+    // Zweiter Klick auf denselben ＋ schließt das Popup wieder
+    if(pop.style.display==='flex' && pop.dataset.target===targetUserId){ closeTipPopup(); return; }
+    pop.dataset.target=targetUserId;
+    pop.innerHTML=TIP_REACTION_EMOJIS.map(e=>`<button class="reaction-btn${myEmoji===e?' active':''}" onclick="tipReact('${matchId}','${targetUserId}','${e}')">${e}</button>`).join('');
+    pop.style.display='flex';
+    const r=ev.currentTarget.getBoundingClientRect();
+    const pw=pop.offsetWidth, ph=pop.offsetHeight;
+    let left=r.left;
+    if(left+pw>window.innerWidth-8) left=window.innerWidth-8-pw;
+    if(left<8) left=8;
+    let top=r.bottom+4;
+    if(top+ph>window.innerHeight-8) top=r.top-ph-4; // nach oben, falls unten kein Platz
+    pop.style.left=left+'px';
+    pop.style.top=Math.max(8,top)+'px';
+}
+function closeTipPopup(){ const p=document.getElementById('tip-react-popup'); if(p){ p.style.display='none'; p.dataset.target=''; } }
+document.addEventListener('click', e=>{
+    const pop=document.getElementById('tip-react-popup');
+    if(pop && pop.style.display==='flex' && !pop.contains(e.target)) closeTipPopup();
+});
 
 // ── Schnelltippen ────────────────────────────────────────────────────────────
 function openQuickTip() {
@@ -791,6 +855,9 @@ function showTips(matchId) {
     if(m.kickoff>Date.now()&&!adminMode){showToast('Tipps erst nach Anpfiff sichtbar ⚽','error');return;}
     document.getElementById('modal-title').innerHTML=`${f(m.teamA)} ${dn(m.teamA)}<br>vs<br>${dn(m.teamB)} ${f(m.teamB)}`;
     const ptslabels=['Daneben','Tendenz','Differenz','Exakt!'];
+    const me=myToken?globalData.users.find(u=>u.token===myToken):null;
+    const myUserId=me?me.id:null;
+    const allTipReactions=globalData.tipReactions||[];
     const rows=globalData.users.map(u=>{
         const tip=globalData.tips.find(t=>t.matchId===matchId&&t.userId===u.id);
         let tipStr='<i style="color:var(--text-muted)">Kein Tipp</i>',badge='';
@@ -798,8 +865,31 @@ function showTips(matchId) {
             tipStr=`<b style="font-size:18px;color:var(--accent-green)">${tip.tipA}:${tip.tipB}</b>`;
             if(m.finished) badge=`<span class="pts-badge pts-${tip.points}">${tip.points}P – ${ptslabels[tip.points]}</span>`;
         }
-        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);">
-            <span>${u.name}</span><span>${tipStr}${badge}</span></div>`;
+        const trs=allTipReactions.filter(r=>r.matchId===matchId&&r.targetUserId===u.id);
+        const counts={};
+        trs.forEach(r=>{counts[r.emoji]=(counts[r.emoji]||0)+1;});
+        const hasReacts=Object.keys(counts).length>0;
+        let plusHtml='',pillsHtml='';
+        if(myUserId&&u.id!==myUserId){
+            // Fremder Tipp: ＋ neben dem Namen öffnet das Emoji-Popup; gesetzte Reaktionen als Pills darunter
+            const myEmoji=trs.find(r=>r.userId===myUserId)?.emoji||'';
+            plusHtml=`<button class="reaction-btn" data-tip-plus onclick="openTipPopup(event,'${matchId}','${u.id}','${myEmoji}')" title="Reagieren">＋</button>`;
+            if(hasReacts) pillsHtml=`<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:6px;">
+                ${Object.entries(counts).map(([e,c])=>`<button class="reaction-btn${myEmoji===e?' active':''}" onclick="tipReact('${matchId}','${u.id}','${e}')">${e} <span style="font-size:10px;color:var(--text-muted)">${c}</span></button>`).join('')}
+            </div>`;
+        } else if(myUserId&&u.id===myUserId&&hasReacts){
+            // Eigener Tipp: nur anzeigen, wer wie reagiert hat (read-only)
+            pillsHtml=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;font-size:14px;color:var(--text-muted)">
+                ${Object.entries(counts).map(([e,c])=>`<span>${e} ${c}</span>`).join('')}
+            </div>`;
+        }
+        return `<div style="padding:9px 0;border-bottom:1px solid var(--border);">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                <span style="display:flex;align-items:center;gap:8px;min-width:0;">
+                    <span${u.id===myUserId?' style="color:var(--accent-green);font-weight:700"':''}>${u.name}</span>${plusHtml}
+                </span>
+                <span style="white-space:nowrap;">${tipStr}${badge}</span>
+            </div>${pillsHtml}</div>`;
     }).join('');
     document.getElementById('modal-content').innerHTML=rows||'<p style="color:var(--text-muted)">Noch keine Tipps.</p>';
     document.getElementById('modal-overlay').style.display='flex';
@@ -812,9 +902,9 @@ function renderMatches(data) {
     let matches=[...data.matches].sort((a,b)=>a.kickoff-b.kickoff);
     const todayStart=new Date();todayStart.setHours(0,0,0,0);
     const tmrStart=new Date(todayStart);tmrStart.setDate(tmrStart.getDate()+1);
-    if     (currentFilter==='offen')   matches=matches.filter(m=>!m.finished&&m.kickoff>=now);
+    if     (currentFilter==='offen')   matches=matches.filter(m=>!m.finished&&now<=m.kickoff+150*60000);
     else if(currentFilter==='heute')   matches=matches.filter(m=>m.kickoff>=todayStart.getTime()&&m.kickoff<tmrStart.getTime());
-    else if(currentFilter==='beendet') matches=matches.filter(m=>m.finished);
+    else if(currentFilter==='beendet') matches=matches.filter(m=>m.finished).reverse();
     else if(currentFilter==='ko')      matches=matches.filter(m=>m.type==='ko');
     else if(currentFilter.startsWith('gr-')) {
         const g=currentFilter.replace('gr-','');
@@ -854,7 +944,7 @@ function renderMatches(data) {
             ? `<span id="cbadge-${m.id}" style="font-size:10px;background:#ef4444;color:white;border-radius:10px;padding:1px 5px;margin-left:2px;font-weight:700;">${unreadComments}</span>`
             : '';
         const borderColor=m.finished?'var(--accent-green)':isLive?'var(--accent)':isTBA?'#21262d':isLocked?'#4b3060':'#16a34a';
-        return `<div class="card" style="border-left:4px solid ${borderColor};">
+        return `<div class="card" id="card-${m.id}" style="border-left:4px solid ${borderColor};">
             <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;">
                 <span>${new Date(m.kickoff).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})} Uhr ${m.type==='ko'?'· '+m.group:'· Gr.'+m.group}${m.finished?' <span style="color:var(--accent-green);font-weight:700">✓</span>':''}</span>
                 ${isLive?'<span class="live-badge">🔴 Live</span>':(!isLocked&&cd?`<span class="countdown-timer" data-kickoff="${m.kickoff}" style="color:#fb923c;font-weight:700;font-size:12px;">${cd}</span>`:'')}
@@ -1180,6 +1270,66 @@ function renderAdmin(matches,users) {
             </div>
         </div>`;
     }).join('');
+    renderAdminTips(globalData);
+}
+
+// ── Admin: Tipps nachträglich ändern ──────────────────────────────────────────
+function renderAdminTips(data) {
+    const sel=document.getElementById('admin-tip-match');
+    if(!sel) return;
+    const matches=[...data.matches].sort((a,b)=>a.kickoff-b.kickoff);
+    const prev=adminTipMatchId||sel.value||'';
+    sel.innerHTML='<option value="">– Spiel wählen –</option>'+matches.map(m=>{
+        const dt=new Date(m.kickoff).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+        const fin=m.finished?` ✓ ${m.resultA}:${m.resultB}`:'';
+        return `<option value="${m.id}">${dt} · ${dn(m.teamA)} – ${dn(m.teamB)}${fin}</option>`;
+    }).join('');
+    if(prev) sel.value=prev;
+    renderAdminTipEditor();
+}
+
+function renderAdminTipEditor() {
+    const sel=document.getElementById('admin-tip-match');
+    const box=document.getElementById('admin-tip-editor');
+    if(!sel||!box) return;
+    adminTipMatchId=sel.value;
+    if(!adminTipMatchId){box.innerHTML='<p style="color:var(--text-muted);font-size:13px;">Bitte ein Spiel wählen.</p>';return;}
+    const m=globalData.matches.find(x=>x.id===adminTipMatchId);
+    if(!m){box.innerHTML='';return;}
+    const note=m.finished
+        ?`<div style="font-size:12px;color:var(--accent-green);margin-bottom:10px;">✓ Beendet (${m.resultA}:${m.resultB}) – Punkte werden bei Änderung neu berechnet.</div>`
+        :`<div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">Noch nicht beendet – Punkte bleiben 0 bis zum Ergebnis.</div>`;
+    const rows=globalData.users.map(u=>{
+        const tip=globalData.tips.find(t=>t.matchId===m.id&&t.userId===u.id);
+        const valA=tip&&tip.tipA!==null?tip.tipA:'';
+        const valB=tip&&tip.tipB!==null?tip.tipB:'';
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);gap:8px;">
+            <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${u.name}</span>
+            <div style="display:flex;align-items:center;flex-shrink:0;">
+                <input type="number" inputmode="numeric" pattern="[0-9]*" id="atip-A-${u.id}" value="${valA}" min="0" max="30" style="width:42px;text-align:center;"
+                    oninput="if(this.value.length>=1){const n=document.getElementById('atip-B-${u.id}');if(n){n.focus();n.select();}}">
+                <span style="font-weight:900;margin:0 4px;color:var(--text-muted);">:</span>
+                <input type="number" inputmode="numeric" pattern="[0-9]*" id="atip-B-${u.id}" value="${valB}" min="0" max="30" style="width:42px;text-align:center;">
+                <button class="btn-primary" style="height:32px;padding:0 10px;font-size:13px;margin-left:8px;" onclick="saveAdminTip('${u.id}')">✓</button>
+            </div>
+        </div>`;
+    }).join('');
+    box.innerHTML=note+(rows||'<p style="color:var(--text-muted);">Keine User.</p>');
+}
+
+async function saveAdminTip(userId) {
+    const matchId=adminTipMatchId;
+    if(!matchId) return;
+    const tipA=document.getElementById('atip-A-'+userId).value;
+    const tipB=document.getElementById('atip-B-'+userId).value;
+    if((tipA===''&&tipB!=='')||(tipA!==''&&tipB==='')){showToast('Bitte beide Felder oder beide leer.','error');return;}
+    try {
+        const r=await fetch('/api/admin/tip',{method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({userId,matchId,tipA,tipB,adminPass:urlAdminPass})});
+        const d=await r.json();
+        if(r.ok){showToast(tipA===''?'Tipp entfernt.':`Tipp ${tipA}:${tipB} gespeichert ✓`);await refreshData();}
+        else showToast('Fehler: '+(d.error||'Unbekannt'),'error');
+    } catch{showToast('Netzwerkfehler','error');}
 }
 
 // ── Header Stats ──────────────────────────────────────────────────────────────
@@ -1208,6 +1358,7 @@ async function refreshData() {
     renderRankings(globalData);
     renderStats(globalData);
     if(adminMode) renderAdmin(globalData.matches,globalData.users);
+    renderNotifBadge(globalData);
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
@@ -1251,6 +1402,7 @@ async function init() {
         }
         renderMatches(globalData);renderGroups(globalData.matches);
         renderRankings(globalData);renderStats(globalData);
+        renderNotifBadge(globalData);
         if(adminMode) renderAdmin(globalData.matches,globalData.users);
         if(adminMode&&!myToken) switchTab('tab-admin'); else switchTab('tab-matches');
         // Push-Permission nach kurzem Delay anfragen (standalone mode check)
@@ -1317,6 +1469,90 @@ async function enablePush() {
     document.getElementById('push-banner').style.display = 'none';
     const perm = await Notification.requestPermission();
     if (perm === 'granted') await subscribePush();
+    if (document.getElementById('notif-overlay').style.display==='flex') renderNotifList(globalData);
+}
+
+// ── Mitteilungszentrale ───────────────────────────────────────────────────────
+function getNotifSeen(){ const v=parseInt(localStorage.getItem('notif_seen')||'0',10); return isNaN(v)?0:v; }
+function setNotifSeen(ts){ localStorage.setItem('notif_seen', String(ts)); }
+
+function renderNotifBadge(data){
+    const el=document.getElementById('notif-count');
+    if(!el) return;
+    const seen=getNotifSeen();
+    const n=(data?.notifications||[]).filter(x=>x.createdAt>seen).length;
+    if(n>0){ el.textContent=n>99?'99+':n; el.style.display='block'; }
+    else el.style.display='none';
+}
+
+function notifTimeAgo(ts){
+    const s=Math.floor((Date.now()-ts)/1000);
+    if(s<60) return 'gerade eben';
+    const m=Math.floor(s/60); if(m<60) return `vor ${m} Min`;
+    const h=Math.floor(m/60); if(h<24) return `vor ${h} Std`;
+    const d=Math.floor(h/24); if(d<7) return `vor ${d} Tag${d>1?'en':''}`;
+    return new Date(ts).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'});
+}
+
+function renderNotifList(data){
+    const list=document.getElementById('notif-list');
+    if(!list) return;
+    if(!myToken){ list.innerHTML='<p style="color:var(--text-muted);text-align:center;padding:24px;">Nur für angemeldete User.</p>'; return; }
+    const seen=getNotifSeen();
+    const items=data?.notifications||[]; // bereits neueste zuerst vom Server
+    let pushHint='';
+    if('Notification' in window && Notification.permission!=='granted'){
+        pushHint=`<div onclick="enablePush()" style="cursor:pointer;background:rgba(204,255,0,.08);border:1px solid var(--accent-green);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:13px;color:var(--accent-green);">🔔 Push aktivieren – aufs Handy bekommst du dann sofort Bescheid</div>`;
+    }
+    if(!items.length){ list.innerHTML=pushHint+'<p style="color:var(--text-muted);text-align:center;padding:24px;">Noch keine Mitteilungen.</p>'; return; }
+    const icons={result:'⚽',comment:'💬','tip-reaction':'😎',reaction:'🔥'};
+    list.innerHTML=pushHint+items.map(n=>{
+        const isNew=n.createdAt>seen, clickable=!!n.matchId;
+        return `<div ${clickable?`onclick="openNotif('${n.matchId}')"`:''} style="display:flex;gap:10px;align-items:flex-start;padding:10px 8px;border-bottom:1px solid var(--border);${clickable?'cursor:pointer;':''}${isNew?'background:rgba(204,255,0,.05);':''}border-radius:8px;">
+            <span style="font-size:18px;line-height:1.2;">${icons[n.type]||'🔔'}</span>
+            <div style="flex:1;min-width:0;">
+                <div style="font-size:13px;font-weight:600;color:var(--text);">${n.title||''}${isNew?' <span style="color:var(--accent-green);font-size:10px;">● neu</span>':''}</div>
+                <div style="font-size:12px;color:var(--text-muted);word-break:break-word;">${n.body||''}</div>
+                <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">${notifTimeAgo(n.createdAt)}</div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function openNotifCenter(){
+    renderNotifList(globalData);
+    document.getElementById('notif-overlay').style.display='flex';
+    const items=globalData?.notifications||[];
+    const maxTs=items.length?Math.max(...items.map(n=>n.createdAt)):Date.now();
+    setNotifSeen(Math.max(maxTs, getNotifSeen()));
+    renderNotifBadge(globalData);
+}
+function closeNotifCenter(){ const o=document.getElementById('notif-overlay'); if(o) o.style.display='none'; }
+
+function openNotif(matchId){
+    closeNotifCenter();
+    if(!matchId || !globalData) return;
+    if(!globalData.matches.find(x=>x.id===matchId)) return;
+    currentFilter='alle';
+    document.querySelectorAll('.tab-content').forEach(t=>t.style.display='none');
+    document.getElementById('tab-matches').style.display='block';
+    document.querySelectorAll('.bottom-nav button').forEach(b=>b.classList.remove('active'));
+    document.getElementById('btn-matches')?.classList.add('active');
+    document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+    const allBtn=[...document.querySelectorAll('.filter-btn')].find(b=>b.textContent.trim()==='Alle');
+    if(allBtn) allBtn.classList.add('active');
+    renderMatches(globalData);
+    setTimeout(()=>{
+        const card=document.getElementById('card-'+matchId);
+        if(!card) return;
+        card.scrollIntoView({behavior:'smooth',block:'center'});
+        const social=document.getElementById('social-'+matchId);
+        if(social && social.style.display==='none') toggleSocial(matchId);
+        const prev=card.style.boxShadow;
+        card.style.transition='box-shadow .25s';
+        card.style.boxShadow='0 0 0 2px var(--accent-green)';
+        setTimeout(()=>{ card.style.boxShadow=prev; }, 1600);
+    }, 80);
 }
 
 // ── Kommentare ────────────────────────────────────────────────────────────────
