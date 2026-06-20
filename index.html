@@ -163,6 +163,12 @@
         .admin-nav-btn.active { background:var(--primary);color:white;border-color:var(--primary); }
         .admin-section { display:none; }
         @keyframes livePulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+        @keyframes soonPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.25;transform:scale(.8)} }
+        .soon-dot { display:inline-block;width:9px;height:9px;border-radius:50%;background:#facc15;box-shadow:0 0 6px rgba(250,204,21,.9);animation:soonPulse 1.2s infinite;margin-right:6px;vertical-align:middle;flex-shrink:0; }
+        html, body { touch-action:manipulation; }
+        .subfilter-bar { display:flex;gap:8px;padding:0 12px 10px; }
+        .subfilter-btn { flex:1;background:var(--card-bg);border:1px solid var(--border);color:var(--text-muted);border-radius:10px;padding:7px 0;font-size:13px;font-weight:700;cursor:pointer; }
+        .subfilter-btn.active { background:rgba(204,255,0,.12);border-color:var(--accent-green);color:var(--accent-green); }
         .live-badge { display:inline-flex;align-items:center;gap:3px;background:rgba(255,0,77,.15);
             border:1px solid var(--accent);color:var(--accent);border-radius:20px;
             padding:1px 8px;font-size:11px;font-weight:700;animation:livePulse 1.5s infinite; }
@@ -297,10 +303,9 @@
     <div id="today-overview" style="display:none;"></div>
     <div id="urgency-banner"></div>
     <div class="filter-bar">
-        <button class="filter-btn active" onclick="setFilter('offen',this)">Offen</button>
-        <button class="filter-btn" onclick="setFilter('beendet',this)">Beendet</button>
+        <button class="filter-btn active" onclick="setFilter('alle',this)">Alle</button>
         <button class="filter-btn" onclick="setFilter('heute',this)">Heute</button>
-        <button class="filter-btn" onclick="setFilter('alle',this)">Alle</button>
+        <button class="filter-btn" onclick="setFilter('beendet',this)">Beendet</button>
         <button class="filter-btn" onclick="setFilter('ko',this)">KO</button>
         <div class="filter-sep"></div>
         <button class="filter-btn" onclick="setFilter('gr-A',this)">A</button>
@@ -315,6 +320,10 @@
         <button class="filter-btn" onclick="setFilter('gr-J',this)">J</button>
         <button class="filter-btn" onclick="setFilter('gr-K',this)">K</button>
         <button class="filter-btn" onclick="setFilter('gr-L',this)">L</button>
+    </div>
+    <div class="subfilter-bar">
+        <button class="subfilter-btn active" onclick="setTipState('offen',this)">📝 Offen</button>
+        <button class="subfilter-btn" onclick="setTipState('getippt',this)">✅ Getippt</button>
     </div>
     <div id="tip-progress"></div>
     <div id="matches-list">Lade Spiele...</div>
@@ -336,6 +345,9 @@
 <div id="tab-stats" class="tab-content">
     <h2 class="page-title">📈 Statistiken</h2>
     <div id="personal-stats-card" class="card" style="display:none;"><h3>Meine Statistiken</h3><div id="personal-stats"></div></div>
+	<div class="card"><h3>👑 MVP der Spielnacht</h3><div id="stats-mvp">Lade...</div></div>
+    <div class="card"><h3>📊 Kletterer & Absteiger</h3><div id="stats-movers">Lade...</div></div>
+    <div class="card"><h3>🎲 Mutigste Tipps</h3><div id="stats-bold">Lade...</div></div>
     <div class="card"><h3>Ranglisten-Verlauf</h3><div id="rankings-chart"><p style="color:var(--text-muted);text-align:center;padding:20px;">Lade...</p></div></div>
     <div class="card"><h3>Head-to-Head</h3><div id="h2h-content"></div></div>
 </div>
@@ -413,7 +425,7 @@ const CHART_COLORS=['#ccff00','#38bdf8','#fb923c','#f472b6','#a78bfa','#34d399',
 const REACTION_EMOJIS = ['🎯','😭','🔥','😱','🤩','😤'];
 const TIP_REACTION_EMOJIS = ['😀','😂','🙁','😭','😡','😳','🤑','👍','👏','💪','👎'];
 
-let globalData=null, adminMode=false, urlAdminPass='', myToken='', currentFilter='offen', currentRankingPhase='all', adminTipMatchId='', rankingLive=false, currentGroupTab='A';
+let globalData=null, adminMode=false, urlAdminPass='', myToken='', currentFilter='alle', currentTipState='offen', currentRankingPhase='all', adminTipMatchId='', rankingLive=false, currentGroupTab='A';
 
 // ── Hilfsfunktionen ─────────────────────────────────────────────────────────
 // Anzeigename: Bosnien und Herzegowina → Bosnien
@@ -580,6 +592,13 @@ function switchTab(id) {
 function setFilter(filter,btn) {
     currentFilter=filter;
     document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    if(globalData) renderMatches(globalData);
+}
+
+function setTipState(state,btn) {
+    currentTipState=state;
+    document.querySelectorAll('.subfilter-btn').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
     if(globalData) renderMatches(globalData);
 }
@@ -966,21 +985,25 @@ function showUserTips(userId) {
 function renderMatches(data) {
     const now=Date.now();
     const me=myToken?data.users.find(u=>u.token===myToken):null;
-    let matches=[...data.matches].sort((a,b)=>a.kickoff-b.kickoff);
+    let matches=[...data.matches];
     const todayStart=new Date();todayStart.setHours(0,0,0,0);
     const tmrStart=new Date(todayStart);tmrStart.setDate(tmrStart.getDate()+1);
-    if     (currentFilter==='offen')   matches=matches.filter(m=>now<=m.kickoff+150*60000);
-    else if(currentFilter==='heute')   matches=matches.filter(m=>m.kickoff>=todayStart.getTime()&&m.kickoff<tmrStart.getTime());
+    // Haupt-Register
+    if     (currentFilter==='heute')   matches=matches.filter(m=>m.kickoff>=todayStart.getTime()&&m.kickoff<tmrStart.getTime());
     else if(currentFilter==='beendet') matches=matches.filter(m=>m.finished&&now>m.kickoff+150*60000);
     else if(currentFilter==='ko')      matches=matches.filter(m=>m.type==='ko');
     else if(currentFilter.startsWith('gr-')) {
         const g=currentFilter.replace('gr-','');
         matches=matches.filter(m=>m.group===g);
     }
-    // Überall außer „Offen": neueste Spiele oben, ältere unten
-    if(currentFilter!=='offen') matches.reverse();
+    // Unter-Register: getippt / offen (bezogen auf eingeloggten Nutzer)
+    const _tipped=m=>{const t=me?data.tips.find(x=>x.matchId===m.id&&x.userId===me.id):null;return !!(t&&t.tipA!==null&&t.tipA!==undefined);};
+    matches=matches.filter(currentTipState==='getippt'?_tipped:(m=>!_tipped(m)));
+    // Sortierung: offen => nächste oben (vergangene unten); getippt => neueste oben
+    if(currentTipState==='getippt') matches.sort((a,b)=>b.kickoff-a.kickoff);
+    else matches.sort((a,b)=>((a.kickoff<now)-(b.kickoff<now))||(a.kickoff-b.kickoff));
     if(!matches.length){
-        document.getElementById('matches-list').innerHTML='<p style="text-align:center;color:var(--text-muted);padding:40px;">Keine Spiele in dieser Ansicht.</p>';
+        document.getElementById('matches-list').innerHTML=`<p style="text-align:center;color:var(--text-muted);padding:40px;">${currentTipState==='getippt'?'Hier hast du noch nichts getippt.':'Keine offenen Spiele hier 🎉'}</p>`;
         return;
     }
     const ptslabels=['Daneben 😬','Tendenz 👍','Differenz 🎯','Exakt! 🏆'];
@@ -988,6 +1011,7 @@ function renderMatches(data) {
         const tip=me?data.tips.find(t=>t.matchId===m.id&&t.userId===me.id):null;
         const isTBA = m.type==='ko' && (m.teamA.startsWith('TBA')||m.teamB.startsWith('TBA'));
         const isLive = !m.finished && !isTBA && m.kickoff<=now && now<=m.kickoff+115*60000;
+        const isSoon = !m.finished && m.kickoff>now && m.kickoff<=now+86400000;
         const isLocked=m.kickoff<now||m.finished||isTBA;
         const cd=formatCountdown(m.kickoff);
         let resultHtml='';
@@ -1015,7 +1039,7 @@ function renderMatches(data) {
         const borderColor=m.finished?'var(--accent-green)':isLive?'var(--accent)':isTBA?'#21262d':isLocked?'#4b3060':'#16a34a';
         return `<div class="card" id="card-${m.id}" style="border-left:4px solid ${borderColor};">
             <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;">
-                <span>${new Date(m.kickoff).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})} Uhr ${m.type==='ko'?'· '+m.group:'· Gr.'+m.group}${m.finished?' <span style="color:var(--accent-green);font-weight:700">✓</span>':''}</span>
+                <span>${isSoon?'<span class="soon-dot"></span>':''}${new Date(m.kickoff).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})} Uhr ${m.type==='ko'?'· '+m.group:'· Gr.'+m.group}${m.finished?' <span style="color:var(--accent-green);font-weight:700">✓</span>':''}</span>
                 ${isLive?'<span class="live-badge">🔴 Live</span>':(!isLocked&&cd?`<span class="countdown-timer" data-kickoff="${m.kickoff}" style="color:#fb923c;font-weight:700;font-size:12px;">${cd}</span>`:'')}
             </div>
             <strong style="font-size:1.05rem;display:block;text-align:center;margin:6px 0;">${isTBA?'⏳ Teams noch nicht bekannt':`${f(m.teamA)} ${dn(m.teamA)} vs ${dn(m.teamB)} ${f(m.teamB)}`}</strong>
@@ -1097,6 +1121,21 @@ function renderRankings(data) {
     const officialRank={}; official.forEach((u,i)=>officialRank[u.id]=i);
     const sorted = (rankingLive&&hasLive) ? rank(true) : official;
 
+    // Gewinnbeträge laut Regeln (Topf 600 €). Bei echtem Gleichstand werden die
+    // Preisgelder der betroffenen Plätze zusammengelegt und zu gleichen Teilen geteilt.
+    const PRIZES=[180,108,72,54,48,42,36,30,18,12];
+    const prizeAt=k=>k<PRIZES.length?PRIZES[k]:0;
+    const sameRank=(a,b)=>a.pPts===b.pPts&&a.pExact===b.pExact&&a.pDiff===b.pDiff&&(a.pExact+a.pDiff+a.pTend)===(b.pExact+b.pDiff+b.pTend);
+    const prizeFor=new Array(sorted.length).fill(0);
+    for(let a=0;a<sorted.length;){
+        let b=a; while(b+1<sorted.length&&sameRank(sorted[b],sorted[b+1])) b++;
+        let sum=0; for(let k=a;k<=b;k++) sum+=prizeAt(k);
+        const each=sum/(b-a+1);
+        for(let k=a;k<=b;k++) prizeFor[k]=each;
+        a=b+1;
+    }
+    const fmtEuro=x=>{const r=Math.round(x*100)/100;return (Number.isInteger(r)?String(r):r.toFixed(2).replace(/0+$/,'').replace(/\.$/,''))+'€';};
+
     const liveToggle = hasLive ? `<div style="padding:0 12px 10px;">
         <button class="phase-btn${rankingLive?' active':''}" style="${rankingLive?'background:var(--accent);border-color:var(--accent);':''}"
             onclick="rankingLive=!rankingLive;renderRankings(globalData)">🔴 Live-Tabelle ${rankingLive?'an':'aus'}</button>
@@ -1120,7 +1159,10 @@ function renderRankings(data) {
             }
             return `<div class="card" onclick="showUserTips('${u.id}')" style="cursor:pointer;${isMe?'border-color:var(--accent-green);':''}">
                 <div style="display:flex;align-items:center;gap:8px;">
-                    <span style="font-weight:700;flex-shrink:0;min-width:30px;">${medal}</span>
+                    <span style="flex-shrink:0;min-width:42px;text-align:center;line-height:1.1;">
+                        <div style="font-weight:700;">${medal}</div>
+                        ${prizeFor[i]>0?`<div style="font-size:10px;font-weight:700;color:#fbbf24;margin-top:1px;">${fmtEuro(prizeFor[i])}</div>`:''}
+                    </span>
                     <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px;">${u.name}${mover?' '+mover:''}</span>
                     <span style="display:flex;align-items:center;gap:9px;flex-shrink:0;font-size:12px;color:var(--text-muted);">
                         <span title="Exakt">🎯<b style="color:#ccff00">${u.pExact}</b></span>
@@ -1171,22 +1213,191 @@ function renderGroups(matches) {
         }).join('')}</tbody></table></div>`;
 
     // Spiele der gewählten Gruppe (neueste oben – konsistent mit Spiele-Tab)
-    const gm=matches.filter(m=>m.group===g).sort((a,b)=>b.kickoff-a.kickoff);
+    const gm=matches.filter(m=>m.group===g).sort((a,b)=>a.kickoff-b.kickoff);
     const matchHtml=`<div class="card"><h3>Gruppe ${g} – Spiele</h3>${gm.length?gm.map(m=>{
         const isLive=!m.finished&&m.liveA!=null;
+        const isSoon=!m.finished&&m.kickoff>Date.now()&&m.kickoff<=Date.now()+86400000;
         const dt=new Date(m.kickoff).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
         let right;
         if(m.finished) right=`<b style="color:var(--accent-green)">${m.resultA}:${m.resultB}</b>`;
         else if(isLive) right=`<span class="live-badge">🔴 ${m.liveA}:${m.liveB}</span>`;
         else right=`<span style="color:var(--text-muted);font-size:12px">${dt} Uhr</span>`;
         return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;">
-            <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f(m.teamA)} ${dn(m.teamA)} – ${dn(m.teamB)} ${f(m.teamB)}</span>
+            <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${isSoon?'<span class="soon-dot"></span>':''}${f(m.teamA)} ${dn(m.teamA)} – ${dn(m.teamB)} ${f(m.teamB)}</span>
             <span style="flex-shrink:0;">${right}</span></div>`;
     }).join(''):'<p style="color:var(--text-muted);font-size:13px;">Keine Spiele.</p>'}</div>`;
 
     document.getElementById('groups-list').innerHTML = tabBar + tableHtml + matchHtml;
 }
 function switchGroupTab(g){ currentGroupTab=g; if(globalData) renderGroups(globalData.matches); }
+
+// ════════════════════════════════════════════════════════════════════════════
+//  STATS-TAB ERWEITERUNG  —  Spielnächte: MVP · Kletterer/Absteiger · Mut
+//  Frontend-only. Nutzt globalData-Struktur (users, tips, matches) + myToken.
+//  Spielnacht = Block von Spielen, deren Anstöße < 8h auseinanderliegen.
+// ════════════════════════════════════════════════════════════════════════════
+
+// ── Spielnächte gruppieren (8h-Lücke = neuer Block) ──────────────────────────
+function getSpielnaechte(data) {
+    const GAP = 8 * 3600 * 1000;
+    const ms = data.matches
+        .filter(m => m.kickoff && !String(m.teamA).startsWith('TBA') && !String(m.teamB).startsWith('TBA'))
+        .sort((a, b) => a.kickoff - b.kickoff);
+    const blocks = []; let cur = null, prev = null;
+    ms.forEach(m => {
+        if (prev === null || (m.kickoff - prev) > GAP) { cur = { start: m.kickoff, matches: [] }; blocks.push(cur); }
+        cur.matches.push(m); prev = m.kickoff;
+    });
+    blocks.forEach((b, i) => {
+        b.index = i + 1;
+        b.label = new Date(b.start).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' });
+    });
+    return blocks;
+}
+
+// ── Punkte/Exakt/Tendenz je User über eine Match-Menge ───────────────────────
+function scopePoints(data, matchIdSet) {
+    const map = {}; data.users.forEach(u => map[u.id] = { pts: 0, exact: 0, tend: 0 });
+    data.tips.forEach(t => {
+        if (!matchIdSet.has(t.matchId) || !map[t.userId]) return;
+        const p = t.points || 0; map[t.userId].pts += p;
+        if (p === 3) map[t.userId].exact++;
+        if (p >= 1) map[t.userId].tend++;
+    });
+    return map;
+}
+
+// ── Rang-Map (gleiche Tiebreaker wie Rangliste: Punkte > Exakt > Tendenz) ─────
+function rankMap(data, statMap) {
+    const arr = data.users.map(u => ({ id: u.id, ...statMap[u.id] }))
+        .sort((a, b) => b.pts - a.pts || b.exact - a.exact || b.tend - a.tend);
+    const rank = {}; let r = 0, prev = null;
+    arr.forEach((u, i) => {
+        if (!(prev && u.pts === prev.pts && u.exact === prev.exact && u.tend === prev.tend)) r = i + 1;
+        rank[u.id] = r; prev = u;
+    });
+    return rank;
+}
+
+// ── 👑 MVP der Spielnacht ────────────────────────────────────────────────────
+function renderMvpNights(data) {
+    const el = document.getElementById('stats-mvp'); if (!el) return;
+    const me = myToken ? data.users.find(u => u.token === myToken) : null;
+    const uname = id => { const u = data.users.find(x => x.id === id); return u ? u.name : '?'; };
+    const completed = getSpielnaechte(data)
+        .map(n => ({ ...n, fin: n.matches.filter(m => m.finished) }))
+        .filter(n => n.fin.length);
+    if (!completed.length) { el.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:14px;">Noch keine Spielnacht beendet.</p>'; return; }
+
+    const mvpCount = {};
+    const rows = completed.map(n => {
+        const ids = new Set(n.fin.map(m => m.id));
+        const pts = {}; data.users.forEach(u => pts[u.id] = 0);
+        data.tips.forEach(t => { if (ids.has(t.matchId) && pts[t.userId] !== undefined) pts[t.userId] += (t.points || 0); });
+        let max = 0; data.users.forEach(u => { if (pts[u.id] > max) max = pts[u.id]; });
+        const mvps = max > 0 ? data.users.filter(u => pts[u.id] === max) : [];
+        mvps.forEach(u => mvpCount[u.id] = (mvpCount[u.id] || 0) + 1);
+        return { n, max, mvps };
+    });
+
+    const detail = [...rows].reverse().slice(0, 7).map(r => {
+        const names = r.mvps.length
+            ? r.mvps.map(u => `<b style="color:${me && u.id === me.id ? '#ccff00' : 'var(--text)'}">${u.name}</b>`).join(', ')
+            : '<span style="color:var(--text-muted)">niemand gepunktet</span>';
+        return `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;">
+            <span style="color:var(--text-muted);white-space:nowrap;">${r.n.label} · ${r.n.fin.length} Sp.</span>
+            <span style="text-align:right;">👑 ${names}${r.max ? ` <span style="color:var(--text-muted)">(${r.max}P)</span>` : ''}</span></div>`;
+    }).join('');
+
+    const board = Object.entries(mvpCount).sort((a, b) => b[1] - a[1]);
+    const boardHtml = board.length ? `<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border);">
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;">🏅 MVP-Bestenliste</div>
+        ${board.map(([id, c]) => `<div style="display:flex;justify-content:space-between;font-size:13px;padding:2px 0;${me && id === me.id ? 'font-weight:700;color:#ccff00;' : ''}"><span>${uname(id)}</span><span>${c}×</span></div>`).join('')}
+    </div>` : '';
+
+    el.innerHTML = detail + boardHtml;
+}
+
+// ── 📊 Kletterer & Absteiger ("Du wurdest überholt") ─────────────────────────
+function renderMovers(data) {
+    const el = document.getElementById('stats-movers'); if (!el) return;
+    const me = myToken ? data.users.find(u => u.token === myToken) : null;
+    const completed = getSpielnaechte(data)
+        .map(n => ({ ...n, fin: n.matches.filter(m => m.finished) }))
+        .filter(n => n.fin.length);
+    if (completed.length < 2) { el.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:14px;">Bewegungen erscheinen nach der zweiten beendeten Spielnacht.</p>'; return; }
+
+    const last = completed[completed.length - 1];
+    const lastIds = new Set(last.fin.map(m => m.id));
+    const allFin = new Set(); completed.forEach(n => n.fin.forEach(m => allFin.add(m.id)));
+    const beforeIds = new Set([...allFin].filter(id => !lastIds.has(id)));
+    const rankAfter = rankMap(data, scopePoints(data, allFin));
+    const rankBefore = rankMap(data, scopePoints(data, beforeIds));
+
+    const movers = data.users.map(u => ({ id: u.id, name: u.name, delta: rankBefore[u.id] - rankAfter[u.id] }));
+    const climbers = movers.filter(m => m.delta > 0).sort((a, b) => b.delta - a.delta).slice(0, 3);
+    const fallers = movers.filter(m => m.delta < 0).sort((a, b) => a.delta - b.delta).slice(0, 3);
+    const row = (m, up) => `<div style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0;${me && m.id === me.id ? 'font-weight:700;' : ''}"><span>${m.name}</span><span style="color:${up ? '#34d399' : '#ef4444'}">${up ? '⬆️ +' : '⬇️ '}${Math.abs(m.delta)}</span></div>`;
+
+    let html = `<div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">Nach Spielnacht ${last.label}</div>`;
+    if (!climbers.length && !fallers.length) {
+        html += '<p style="color:var(--text-muted);text-align:center;">Keine Rangverschiebungen.</p>';
+    } else {
+        if (climbers.length) html += `<div style="font-size:11px;color:#34d399;text-transform:uppercase;letter-spacing:.5px;margin:4px 0;">Kletterer</div>${climbers.map(m => row(m, true)).join('')}`;
+        if (fallers.length) html += `<div style="font-size:11px;color:#ef4444;text-transform:uppercase;letter-spacing:.5px;margin:8px 0 4px;">Absteiger</div>${fallers.map(m => row(m, false)).join('')}`;
+    }
+
+    if (me) {
+        const rb = rankBefore[me.id], ra = rankAfter[me.id], d = rb - ra;
+        const iPassed = data.users.filter(o => o.id !== me.id && rankBefore[o.id] < rb && rankAfter[o.id] > ra).map(o => o.name);
+        const passedMe = data.users.filter(o => o.id !== me.id && rankBefore[o.id] > rb && rankAfter[o.id] < ra).map(o => o.name);
+        let p = `<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border);font-size:13px;">`;
+        p += `<div style="margin-bottom:4px;">Du: Platz ${rb} → <b>${ra}</b> ${d > 0 ? `<span style="color:#34d399">(⬆️ +${d})</span>` : d < 0 ? `<span style="color:#ef4444">(⬇️ ${d})</span>` : '<span style="color:var(--text-muted)">(±0)</span>'}</div>`;
+        if (iPassed.length) p += `<div style="color:#34d399">⬆️ Überholt: ${iPassed.join(', ')}</div>`;
+        if (passedMe.length) p += `<div style="color:#ef4444">⬇️ Überholt von: ${passedMe.join(', ')}</div>`;
+        if (!iPassed.length && !passedMe.length) p += `<div style="color:var(--text-muted)">Keine Überholmanöver für dich.</div>`;
+        p += `</div>`;
+        html += p;
+    }
+    el.innerHTML = html;
+}
+
+// ── 🎲 Mutigste Tipps (Treffer gegen die Mehrheit) ───────────────────────────
+function renderBoldHits(data) {
+    const el = document.getElementById('stats-bold'); if (!el) return;
+    const me = myToken ? data.users.find(u => u.token === myToken) : null;
+    const tend = (a, b) => a > b ? 1 : a < b ? -1 : 0;
+    const entries = [];
+    data.matches.filter(m => m.finished).forEach(m => {
+        const ts = data.tips.filter(t => t.matchId === m.id && t.tipA !== null && t.tipA !== undefined);
+        const T = ts.length; if (T < 4) return;
+        ts.forEach(t => {
+            if ((t.points || 0) <= 0) return;
+            const mt = tend(t.tipA, t.tipB);
+            const share = ts.filter(x => tend(x.tipA, x.tipB) === mt).length;
+            const u = data.users.find(x => x.id === t.userId); if (!u) return;
+            entries.push({ userId: u.id, name: u.name, match: m, tip: `${t.tipA}:${t.tipB}`, points: t.points, bravery: 1 - share / T, share, T });
+        });
+    });
+    if (!entries.length) { el.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:14px;">Noch keine mutigen Treffer (min. 4 Tipper pro Spiel).</p>'; return; }
+
+    entries.sort((a, b) => b.bravery - a.bravery || b.points - a.points);
+    const pIcon = { 1: '📈', 2: '📐', 3: '🎯' };
+    el.innerHTML = entries.slice(0, 6).map(e => {
+        const mine = me && e.userId === me.id;
+        const lonely = e.share === 1 ? ' 🦄' : '';
+        const res = `${dn(e.match.teamA)} ${e.match.resultA}:${e.match.resultB} ${dn(e.match.teamB)}`;
+        return `<div style="padding:7px 0;border-bottom:1px solid var(--border);${mine ? 'background:rgba(204,255,0,.05);border-radius:6px;padding:7px 6px;' : ''}">
+            <div style="display:flex;justify-content:space-between;font-size:13px;gap:8px;">
+                <span style="${mine ? 'font-weight:700;color:#ccff00;' : ''}">${e.name}${lonely}</span>
+                <span style="white-space:nowrap;">${pIcon[e.points] || ''} ${e.tip} <span style="color:#fb923c">${Math.round(e.bravery * 100)}% mutig</span></span>
+            </div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${res} · nur ${e.share} von ${e.T} tippten so</div>
+        </div>`;
+    }).join('');
+}
+
+
 
 // ── Stats ─────────────────────────────────────────────────────────────────────
 function renderStats(data) {
@@ -1202,11 +1413,20 @@ function renderStats(data) {
             const tend=finishedTips.filter(t=>t.points===1).length,miss=finishedTips.filter(t=>t.points===0).length;
             const hitRate=total>0?Math.round(((exact+diff+tend)/total)*100):0;
             const avgPts=total>0?(pts/total).toFixed(2):'-';
-            const now=Date.now(),upcoming=data.matches.filter(m=>!m.finished&&m.kickoff>now&&!m.teamA.startsWith('TBA'));
-            const tippedUp=upcoming.filter(m=>myTips.find(t=>t.matchId===m.id&&t.tipA!==null)).length;
+            const now=Date.now();
+            const realGames=data.matches.filter(m=>!m.teamA.startsWith('TBA'));
+            const openGames=realGames.filter(m=>!m.finished&&m.kickoff>now);
+            const closedGames=realGames.filter(m=>m.finished||m.kickoff<=now);
+            const _mine=m=>myTips.find(t=>t.matchId===m.id&&t.tipA!==null);
+            const openTipped=openGames.filter(_mine).length;
+            const closedTipped=closedGames.filter(_mine).length;
+            const totalTipped=openTipped+closedTipped;
+            const upcoming=openGames, tippedUp=openTipped;
+            const last5=finishedTips.map(t=>({t,m:data.matches.find(x=>x.id===t.matchId)})).filter(x=>x.m).sort((a,b)=>a.m.kickoff-b.m.kickoff).slice(-5);
+            const formHtml=last5.length?last5.map(x=>{const p=x.t.points||0;const g=p>=1;return `<span title="${dn(x.m.teamA)} ${x.m.resultA}:${x.m.resultB} ${dn(x.m.teamB)} · ${p}P" style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:${g?'#22c55e':'#ef4444'};color:#0d1117;font-weight:800;font-size:12px;">${p}</span>`;}).join(''):'<span style="color:var(--text-muted);font-size:12px;">noch keine</span>';
             document.getElementById('personal-stats').innerHTML=`
                 <div class="stat-grid">
-                    <div class="stat-box"><div class="stat-val">${tippedUp}/${upcoming.length}</div><div class="stat-lbl">Offene getippt</div></div>
+                    <div class="stat-box"><div class="stat-val">${totalTipped}/${realGames.length}</div><div class="stat-lbl">Tipps abgegeben</div></div>
                     <div class="stat-box"><div class="stat-val">${hitRate}%</div><div class="stat-lbl">Trefferquote</div></div>
                     <div class="stat-box"><div class="stat-val">${avgPts}</div><div class="stat-lbl">Ø Punkte/Spiel</div></div>
                     <div class="stat-box"><div class="stat-val">${total}</div><div class="stat-lbl">Gewertete Tipps</div></div>
@@ -1216,9 +1436,17 @@ function renderStats(data) {
                     <span>📐 <b style="color:#38bdf8">${diff}</b></span>
                     <span>📈 <b style="color:#fb923c">${tend}</b></span>
                     <span>❌ <b style="color:#ef4444">${miss}</b></span>
-                </div>`;
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--border);">
+                    <span style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;">Form · letzte 5</span>
+                    <span style="display:flex;gap:5px;margin-left:auto;">${formHtml}</span>
+                </div>
+                <div style="font-size:11px;color:var(--text-muted);text-align:center;padding-top:8px;border-top:1px solid var(--border);">📝 offen ${openTipped}/${openGames.length} &nbsp;·&nbsp; 🔒 geschlossen ${closedTipped}/${closedGames.length}</div>`;
         }
     } else { psCard.style.display='none'; }
+	renderMvpNights(data);
+    renderMovers(data);
+    renderBoldHits(data);
     drawRankingsChart(data);
     renderH2HSelectors(data);
 }
@@ -1226,37 +1454,41 @@ function renderStats(data) {
 function drawRankingsChart(data) {
     const el=document.getElementById('rankings-chart');
     const finished=data.matches.filter(m=>m.finished).sort((a,b)=>a.kickoff-b.kickoff);
-    if(finished.length<1){el.innerHTML='<p style="color:var(--text-muted);text-align:center;padding:20px;">Noch keine Spiele beendet.</p>';return;}
     const users=data.users;
-    if(!users.length){el.innerHTML='<p style="color:var(--text-muted);text-align:center;">Keine Spieler.</p>';return;}
-    const cum={};users.forEach(u=>cum[u.id]=0);
-    const timeline=[{pts:users.reduce((a,u)=>({...a,[u.id]:0}),{})}];
-    finished.forEach(m=>{
-        data.tips.forEach(t=>{if(t.matchId===m.id&&cum.hasOwnProperty(t.userId))cum[t.userId]+=(t.points||0);});
-        timeline.push({pts:{...cum}});
+    if(!users.length){el.innerHTML='<p style="color:var(--text-muted);text-align:center;padding:20px;">Keine Spieler.</p>';return;}
+    if(finished.length<2){el.innerHTML='<p style="color:var(--text-muted);text-align:center;padding:20px;">Der Verlauf erscheint nach 2 beendeten Spielen.</p>';return;}
+    // Checkpoints: pro Spielnacht (sonst pro Einzelspiel)
+    let groups=[];
+    try{ if(typeof getSpielnaechte==='function'){ groups=getSpielnaechte(data).map(nn=>nn.matches.filter(m=>m.finished)).filter(a=>a.length); } }catch(e){}
+    if(groups.length<2) groups=finished.map(m=>[m]);
+    // Kumulierte Punkte + Rang-Snapshot nach jedem Checkpoint
+    const stat={}; users.forEach(u=>stat[u.id]={pts:0,exact:0,diff:0,tend:0});
+    const tipsByMatch={}; data.tips.forEach(t=>{(tipsByMatch[t.matchId]=tipsByMatch[t.matchId]||[]).push(t);});
+    const snap=()=>{const arr=users.map(u=>({id:u.id,...stat[u.id]})).sort((a,b)=>
+        b.pts-a.pts||b.exact-a.exact||b.diff-a.diff||(b.exact+b.diff+b.tend)-(a.exact+a.diff+a.tend)||String(a.id).localeCompare(String(b.id)));
+        const r={};arr.forEach((u,i)=>r[u.id]=i+1);return r;};
+    const series=[];
+    groups.forEach(g=>{
+        g.forEach(m=>{(tipsByMatch[m.id]||[]).forEach(t=>{if(!stat[t.userId]||t.tipA==null)return;const p=t.points||0;stat[t.userId].pts+=p;if(p===3)stat[t.userId].exact++;else if(p===2)stat[t.userId].diff++;else if(p===1)stat[t.userId].tend++;});});
+        series.push(snap());
     });
-    const maxPts=Math.max(...users.map(u=>cum[u.id]),1);
-    const W=320,H=170,PL=26,PR=8,PT=8,PB=18,cW=W-PL-PR,cH=H-PT-PB,n=timeline.length;
-    const gx=i=>PL+(i/(n-1||1))*cW,gy=p=>PT+cH-(p/maxPts)*cH;
-    let grid='';
-    for(let i=0;i<=4;i++){const v=Math.round((i/4)*maxPts),y=gy(v);grid+=`<line x1="${PL}" y1="${y}" x2="${PL+cW}" y2="${y}" stroke="#30363d" stroke-width="1"/><text x="${PL-3}" y="${y+3}" text-anchor="end" fill="#8b949e" font-size="8">${v}</text>`;}
-    let lines='';
+    const S=series.length, N=users.length;
+    const W=360, PL=20, PR=92, PT=14, PB=12, rowH=Math.max(13,Math.min(20,220/Math.max(N-1,1))), cH=(N-1)*rowH, H=PT+cH+PB, cW=W-PL-PR;
+    const x=s=>PL+(S<=1?cW:(s/(S-1))*cW), y=rank=>PT+(N<=1?0:((rank-1)/(N-1))*cH);
+    let axis='';
+    for(let rnk=1;rnk<=N;rnk++){axis+=`<text x="${PL-6}" y="${y(rnk)+3}" text-anchor="end" fill="#586069" font-size="8">${rnk}</text>`;}
+    let lines='', labels='';
     users.forEach((u,idx)=>{
-        const col=CHART_COLORS[idx%CHART_COLORS.length],isMe=u.token===myToken;
-        const pts=timeline.map((t,i)=>`${gx(i)},${gy(t.pts[u.id]||0)}`).join(' ');
-        lines+=`<polyline points="${pts}" fill="none" stroke="${col}" stroke-width="${isMe?2.5:1.5}" opacity="${isMe?1:.65}" stroke-linejoin="round"/>
-                <circle cx="${gx(n-1)}" cy="${gy(cum[u.id]||0)}" r="${isMe?4:2.5}" fill="${col}" opacity="${isMe?1:.65}"/>`;
+        const col=CHART_COLORS[idx%CHART_COLORS.length], isMe=u.token===myToken;
+        const pts=series.map((r,s)=>`${x(s)},${y(r[u.id])}`).join(' ');
+        const fr=series[S-1][u.id];
+        lines+=`<polyline points="${pts}" fill="none" stroke="${col}" stroke-width="${isMe?2.6:1.4}" opacity="${isMe?1:.7}" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${x(S-1)}" cy="${y(fr)}" r="${isMe?3.5:2.2}" fill="${col}" opacity="${isMe?1:.7}"/>`;
+        const nm=u.name.length>11?u.name.slice(0,10)+'…':u.name;
+        labels+=`<text x="${x(S-1)+6}" y="${y(fr)+3}" fill="${col}" font-size="9" font-weight="${isMe?'700':'400'}" opacity="${isMe?1:.9}">${fr}. ${nm}</text>`;
     });
-    const legend=users.map((u,idx)=>{
-        const col=CHART_COLORS[idx%CHART_COLORS.length],isMe=u.token===myToken;
-        return `<div style="display:flex;align-items:center;gap:5px;font-size:11px;${isMe?'font-weight:700;':''}">
-            <div style="width:16px;height:3px;background:${col};border-radius:2px;flex-shrink:0;"></div>
-            <span style="color:${isMe?col:'var(--text-muted)'}">${u.name}</span></div>`;
-    }).join('');
-    el.innerHTML=`<svg width="100%" viewBox="0 0 ${W} ${H}" style="overflow:visible;display:block;">${grid}${lines}</svg>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;">${legend}</div>`;
+    el.innerHTML=`<svg width="100%" viewBox="0 0 ${W} ${H}" style="display:block;">${axis}${lines}${labels}</svg>
+        <div style="font-size:10px;color:var(--text-muted);text-align:center;margin-top:6px;">Platzierung über die Zeit · oben = Platz 1</div>`;
 }
-
 function renderH2HSelectors(data) {
     const el=document.getElementById('h2h-content');
     if(data.users.length<2){el.innerHTML='<p style="color:var(--text-muted);text-align:center;">Mindestens 2 Spieler nötig.</p>';return;}
@@ -1472,10 +1704,47 @@ function updateHeaderStats(data) {
 }
 
 // ── Data Refresh ──────────────────────────────────────────────────────────────
+// Merkt sich, welche Social-Boxen offen sind + den Kommentar-Entwurf (Text/Cursor),
+// damit ein Re-Render (Auto-Refresh ODER eigene Reaktion/Kommentar) die offene Box
+// nicht schließt und nichts wegwirft, was gerade getippt wurde.
+function snapshotSocialState() {
+    const open = [];
+    document.querySelectorAll('[id^="social-"]').forEach(el => {
+        if (el.style.display && el.style.display !== 'none') open.push(el.id.slice(7));
+    });
+    let input = null;
+    const a = document.activeElement;
+    if (a && a.id && a.id.startsWith('ci-')) {
+        input = { matchId:a.id.slice(3), value:a.value, selStart:a.selectionStart, selEnd:a.selectionEnd, focus:true };
+    } else {
+        // auch ein nicht-fokussiertes, halb getipptes Feld retten
+        document.querySelectorAll('[id^="ci-"]').forEach(inp => {
+            if (!input && inp.value) input = { matchId:inp.id.slice(3), value:inp.value, focus:false };
+        });
+    }
+    return { open, input, scrollY:window.scrollY };
+}
+function restoreSocialState(s) {
+    if (!s || (!s.open.length && !s.input)) return;
+    s.open.forEach(id => { const el=document.getElementById('social-'+id); if(el) el.style.display='block'; });
+    if (s.input) {
+        const inp = document.getElementById('ci-'+s.input.matchId);
+        if (inp) {
+            inp.value = s.input.value;
+            if (s.input.focus) {
+                inp.focus();
+                try { inp.setSelectionRange(s.input.selStart ?? inp.value.length, s.input.selEnd ?? inp.value.length); } catch {}
+            }
+        }
+    }
+    if (typeof s.scrollY === 'number') window.scrollTo(0, s.scrollY);
+}
+
 async function refreshData() {
     const url=myToken?`/api/daten?token=${myToken}`:`/api/daten?admin=${urlAdminPass}`;
     const r=await fetch(url);if(!r.ok)return;
     globalData=await r.json();
+    const _ss=snapshotSocialState();        // Zustand VOR dem Neuzeichnen sichern
     updateHeaderStats(globalData);
     renderMatches(globalData);
     renderGroups(globalData.matches);
@@ -1483,6 +1752,7 @@ async function refreshData() {
     renderStats(globalData);
     if(adminMode) renderAdmin(globalData.matches,globalData.users);
     renderNotifBadge(globalData);
+    restoreSocialState(_ss);                 // offene Box + Entwurf wiederherstellen
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
@@ -1743,6 +2013,11 @@ async function checkForUpdates() {
     if (document.visibilityState !== 'visible' || !globalData) return;
     // Schnelltippen nicht stören – würde sonst die Eingabe verwerfen
     if (document.getElementById('quicktip-overlay')?.style.display === 'block') return;
+    // Während aktiv ein Kommentar getippt wird oder das Reaktions-Popup offen ist:
+    // Refresh aufschieben (lastVersion bleibt stehen → wird beim nächsten Tick nachgeholt)
+    const _a = document.activeElement;
+    if (_a && _a.id && _a.id.startsWith('ci-')) return;
+    if (document.getElementById('tip-react-popup')?.style.display === 'flex') return;
     try {
         const r = await fetch('/api/version');
         if (!r.ok) return;
