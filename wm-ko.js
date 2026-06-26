@@ -285,11 +285,112 @@ module.exports = function initWmKo(deps, opts = {}) {
         return { propagation: out, pendingAdvancers: pend };
     }
 
+    // ── Clinch-Erkennung: wessen EXAKTE Position (1./2.) steht sicher fest? ────
+    // Konservativ über Punkte (alle W/U/N-Kombinationen der Restspiele). Gleichstände
+    // werden pessimistisch behandelt → es wird NIE ein Clinch behauptet, der nur über
+    // die Tordifferenz feststeht. Solche Fälle setzt der Admin ggf. manuell.
+    function computeClinch() {
+        const rows = db.prepare("SELECT group_name AS g, teamA, teamB, resultA, resultB, finished FROM matches WHERE type='group'").all();
+        const G = {}; GROUPS.forEach(g => G[g] = { teams:new Set(), finished:[], pending:[] });
+        for (const m of rows) {
+            const x = G[m.g]; x.teams.add(m.teamA); x.teams.add(m.teamB);
+            if (m.finished === 1 && m.resultA != null && m.resultB != null) x.finished.push(m);
+            else x.pending.push(m);
+        }
+        const out = {};
+        for (const g of GROUPS) {
+            const x = G[g], names = [...x.teams], k = x.pending.length;
+            // Hat ein Team überhaupt noch ein offenes Spiel? (→ Gesamt-Tordifferenz unsicher)
+            const hasPending = {}; names.forEach(t => hasPending[t] = false);
+            x.pending.forEach(m => { hasPending[m.teamA] = true; hasPending[m.teamB] = true; });
+            const possible = {}; names.forEach(t => possible[t] = new Set());
+
+            for (let c = 0; c < Math.pow(3, k); c++) {
+                // Restspiel-Ausgänge dieser Kombination (0=A-Sieg, 1=B-Sieg, 2=Remis) — Vorzeichen fix, Marge offen
+                const oc = new Map(); let n = c;
+                for (const m of x.pending) { const o = n % 3; n = (n - o) / 3; oc.set(m, o); }
+
+                // Punkte (exakt) + Gesamt-Tordiff/-Tore (nur aus beendeten Spielen sicher)
+                const pts = {}, gd = {}, gf = {}; names.forEach(t => { pts[t]=0; gd[t]=0; gf[t]=0; });
+                for (const m of x.finished) {
+                    gf[m.teamA]+=m.resultA; gf[m.teamB]+=m.resultB; gd[m.teamA]+=m.resultA-m.resultB; gd[m.teamB]+=m.resultB-m.resultA;
+                    if (m.resultA>m.resultB) pts[m.teamA]+=3; else if (m.resultA<m.resultB) pts[m.teamB]+=3; else { pts[m.teamA]++; pts[m.teamB]++; }
+                }
+                for (const m of x.pending) { const o=oc.get(m); if (o===0) pts[m.teamA]+=3; else if (o===1) pts[m.teamB]+=3; else { pts[m.teamA]++; pts[m.teamB]++; } }
+
+                // direkter Vergleich (Mini-Tabelle) unter einer punktgleichen Teilmenge S
+                const h2h = (S) => {
+                    const set=new Set(S), hp={}, hgd={}, hgf={}, hPend={};
+                    S.forEach(t => { hp[t]=0; hgd[t]=0; hgf[t]=0; hPend[t]=false; });
+                    for (const m of x.finished) { if(!set.has(m.teamA)||!set.has(m.teamB))continue;
+                        hgf[m.teamA]+=m.resultA; hgf[m.teamB]+=m.resultB; hgd[m.teamA]+=m.resultA-m.resultB; hgd[m.teamB]+=m.resultB-m.resultA;
+                        if (m.resultA>m.resultB) hp[m.teamA]+=3; else if (m.resultA<m.resultB) hp[m.teamB]+=3; else { hp[m.teamA]++; hp[m.teamB]++; } }
+                    for (const m of x.pending) { if(!set.has(m.teamA)||!set.has(m.teamB))continue; const o=oc.get(m);
+                        if (o===0) hp[m.teamA]+=3; else if (o===1) hp[m.teamB]+=3; else { hp[m.teamA]++; hp[m.teamB]++; }
+                        hPend[m.teamA]=true; hPend[m.teamB]=true; }
+                    return { hp, hgd, hgf, hPend };
+                };
+
+                // Vergleich U vs T: 1 = U sicher besser, -1 = T sicher besser, 0 = (noch) unsicher
+                const cmp = (U, T) => {
+                    if (pts[U] !== pts[T]) return pts[U] > pts[T] ? 1 : -1;
+                    const S = names.filter(t => pts[t] === pts[U]);
+                    const { hp, hgd, hgf, hPend } = h2h(S);
+                    if (hp[U] !== hp[T]) return hp[U] > hp[T] ? 1 : -1;        // direkter Vergleich: Punkte (margen-unabhängig)
+                    if (S.some(t => hPend[t])) return 0;                       // H2H-Tordiff hängt an offener Marge → unsicher
+                    if (hgd[U] !== hgd[T]) return hgd[U] > hgd[T] ? 1 : -1;    // H2H-Tordiff
+                    if (hgf[U] !== hgf[T]) return hgf[U] > hgf[T] ? 1 : -1;    // H2H-Tore
+                    if (hasPending[U] || hasPending[T]) return 0;              // Gesamt-Tordiff-Marge offen → unsicher
+                    if (gd[U] !== gd[T]) return gd[U] > gd[T] ? 1 : -1;        // Gesamt-Tordiff
+                    if (gf[U] !== gf[T]) return gf[U] > gf[T] ? 1 : -1;        // Gesamt-Tore
+                    return 0;                                                  // echter Gleichstand (Losentscheid) → unsicher
+                };
+
+                for (const T of names) {
+                    let cert=0, maybe=0;
+                    for (const U of names) { if (U===T) continue; const r=cmp(U,T); if (r>0) cert++; else if (r===0) maybe++; }
+                    for (let r = cert+1; r <= cert+maybe+1; r++) possible[T].add(r);
+                }
+            }
+
+            const perTeam = {};
+            names.forEach(t => { const r = [...possible[t]].sort((a,b)=>a-b);
+                perTeam[t] = { ranks:r, c1:(r.length===1&&r[0]===1), c2:(r.length===1&&r[0]===2), top2:r.every(x=>x<=2) }; });
+            out[g] = {
+                winner:   names.find(t => perTeam[t].c1) || null,
+                runnerUp: names.find(t => perTeam[t].c2) || null,
+                top2:     names.filter(t => perTeam[t].top2),
+                perTeam, pending:k,
+            };
+        }
+        return out;
+    }
+
+    // Welche Match-Seiten lassen sich daraus sicher vorzeitig setzen?
+    function buildEarlySides(clinch) {
+        const sides = [];
+        for (const col of COLS) { const w = clinch[col[1]].winner; if (w) sides.push({ matchId:THIRD_MATCH[col], side:'A', team:w, slot:col }); }
+        for (const [mid, sA, sB] of STATIC_R32)
+            for (const [side, slot] of [['A',sA],['B',sB]]) {
+                const team = slot[0] === '1' ? clinch[slot[1]].winner : clinch[slot[1]].runnerUp;
+                if (team) sides.push({ matchId:mid, side, team, slot });
+            }
+        return sides;
+    }
+
     // ── PREVIEW ───────────────────────────────────────────────────────────────
     function preview() {
         const st = computeStandings();
         const ti = rankThirds(st.tables);
         const prop = buildPropagation();
+        const clinch = computeClinch();
+        const earlySides = buildEarlySides(clinch);
+        // markieren, was bereits in den KO-Spielen steht (damit die UI "offen" vs "gesetzt" zeigt)
+        const koMap = {}; db.prepare("SELECT id, teamA, teamB FROM matches WHERE type='ko'").all().forEach(r => koMap[r.id] = r);
+        earlySides.forEach(s => { const row = koMap[s.matchId]; s.set = !!(row && (s.side === 'A' ? row.teamA : row.teamB) === s.team); });
+        const earlyPending = earlySides.filter(s => !s.set).length;
+        const bySide = {}; earlySides.forEach(s => { (bySide[s.matchId] = bySide[s.matchId] || {})[s.side] = true; });
+        const earlyFullMatches = Object.keys(bySide).filter(mid => bySide[mid].A && bySide[mid].B).length;
         return {
             complete: st.complete, finishedGroupGames: st.finishedCount, totalGroupGames: st.totalCount,
             ambiguousGroups: st.ambiguousGroups,
@@ -297,13 +398,15 @@ module.exports = function initWmKo(deps, opts = {}) {
             boundaryAmbiguous: ti.boundaryAmbiguous, annexMatched: !!ANNEXC[ti.best8Groups],
             r32: buildR32(st.tables, ti),
             propagation: prop.propagation, pendingAdvancers: prop.pendingAdvancers,
+            clinch, earlySides, earlyCount: earlySides.length, earlyPending, earlyFullMatches,
         };
     }
 
     // ── APPLY ─────────────────────────────────────────────────────────────────
     function apply(body) {
         const st = computeStandings();
-        if (!st.complete && !body.force)
+        const early = body.mode === 'early';
+        if (!early && !st.complete && !body.force)
             return { ok:false, error:'Gruppenphase noch nicht abgeschlossen.', finishedGroupGames:st.finishedCount, totalGroupGames:st.totalCount };
 
         const getKo    = db.prepare("SELECT id, teamA, teamB, finished FROM matches WHERE id=? AND type='ko'");
@@ -317,17 +420,27 @@ module.exports = function initWmKo(deps, opts = {}) {
             if (body.advancers && typeof body.advancers === 'object')
                 for (const [mid, adv] of Object.entries(body.advancers)) if (adv) upAdv.run(mid, adv);
 
-            let r32 = Array.isArray(body.r32) && body.r32.length ? body.r32 : buildR32(st.tables, rankThirds(st.tables));
-            for (const m of r32) {
-                const row = getKo.get(m.matchId);
-                if (!row || row.finished === 1 || !m.teamA || !m.teamB) continue;
-                if (row.teamA !== m.teamA || row.teamB !== m.teamB) { setTeams.run(m.teamA, m.teamB, m.matchId); changes.push(`${m.matchId}: ${m.teamA} vs ${m.teamB}`); }
-            }
-            for (const p of buildPropagation().propagation) {
-                const row = getKo.get(p.matchId);
-                if (!row || row.finished === 1) continue;
-                if (p.teamA && row.teamA !== p.teamA) { setA.run(p.teamA, p.matchId); changes.push(`${p.matchId}.A = ${p.teamA}`); }
-                if (p.teamB && row.teamB !== p.teamB) { setB.run(p.teamB, p.matchId); changes.push(`${p.matchId}.B = ${p.teamB}`); }
+            if (early) {
+                // Nur sicher feststehende Seiten setzen (Gruppensieger/-zweite mit geclinchter Position).
+                for (const sde of buildEarlySides(computeClinch())) {
+                    const row = getKo.get(sde.matchId);
+                    if (!row || row.finished === 1) continue;
+                    if (sde.side === 'A') { if (row.teamA !== sde.team) { setA.run(sde.team, sde.matchId); changes.push(`${sde.matchId}.A = ${sde.team} (vorzeitig, ${sde.slot})`); } }
+                    else                  { if (row.teamB !== sde.team) { setB.run(sde.team, sde.matchId); changes.push(`${sde.matchId}.B = ${sde.team} (vorzeitig, ${sde.slot})`); } }
+                }
+            } else {
+                let r32 = Array.isArray(body.r32) && body.r32.length ? body.r32 : buildR32(st.tables, rankThirds(st.tables));
+                for (const m of r32) {
+                    const row = getKo.get(m.matchId);
+                    if (!row || row.finished === 1 || !m.teamA || !m.teamB) continue;
+                    if (row.teamA !== m.teamA || row.teamB !== m.teamB) { setTeams.run(m.teamA, m.teamB, m.matchId); changes.push(`${m.matchId}: ${m.teamA} vs ${m.teamB}`); }
+                }
+                for (const p of buildPropagation().propagation) {
+                    const row = getKo.get(p.matchId);
+                    if (!row || row.finished === 1) continue;
+                    if (p.teamA && row.teamA !== p.teamA) { setA.run(p.teamA, p.matchId); changes.push(`${p.matchId}.A = ${p.teamA}`); }
+                    if (p.teamB && row.teamB !== p.teamB) { setB.run(p.teamB, p.matchId); changes.push(`${p.matchId}.B = ${p.teamB}`); }
+                }
             }
         })();
         return { ok:true, count: changes.length, changes };
@@ -343,5 +456,5 @@ module.exports = function initWmKo(deps, opts = {}) {
     app.post('/api/admin/ko/apply',  (req,res) => { if (!guard(req,res)) return; try { res.json(apply(req.body || {})); } catch(e){ console.error(TAG, e); res.status(500).json({ error:e.message }); } });
 
     console.log(`${TAG} aktiv – Routen /api/admin/ko/preview & /api/admin/ko/apply`);
-    return { preview, apply, computeStandings, buildPropagation };
+    return { preview, apply, computeStandings, buildPropagation, computeClinch, buildEarlySides };
 };

@@ -1825,6 +1825,25 @@ function renderKoPreview(d) {
     if (d.boundaryAmbiguous) html += `<div style="color:#fb923c;font-size:12px;margin-top:6px;">⚠️ Gleichstand an der 8./9.-Dritten-Grenze – Weiterkommen nicht eindeutig.</div>`;
     if (!d.annexMatched) html += `<div style="color:var(--accent);font-size:12px;margin-top:6px;">Dritten-Zuordnung noch unvollständig (es stehen noch nicht alle 8 Dritten fest).</div>`;
     html += '</div>';
+    if (d.earlySides && d.earlySides.length) {
+        const pend = d.earlyPending || 0;
+        html += `<div class="card" style="border-left:4px solid var(--accent-green);"><h3 style="margin-top:0;">🔒 Vorzeitig setzbar</h3>`;
+        html += pend > 0
+            ? `<p style="font-size:12px;color:var(--text-muted);margin-top:0;">${pend} noch nicht gesetzt${d.earlyFullMatches ? ` · ${d.earlyFullMatches} Spiel(e) werden komplett &amp; tippbar` : ''}.</p>`
+            : `<p style="font-size:12px;color:var(--accent-green);margin-top:0;">✓ Alle sicheren Platzierungen sind bereits gesetzt.</p>`;
+        html += '<div style="font-size:12px;margin-bottom:10px;">';
+        d.earlySides.forEach(s2 => { html += `<div style="padding:2px 0;color:${s2.set ? 'var(--accent-green)' : 'var(--text-muted)'};">${s2.set ? '✓' : '•'} ${s2.matchId}: ${f(s2.team)} ${dn(s2.team)} <span style="opacity:.7;">als ${s2.slot}</span></div>`; });
+        html += '</div>';
+        html += pend > 0
+            ? `<button class="btn-primary" style="width:100%;" onclick="applyKo('early')">🔒 ${pend} qualifizierte vorzeitig setzen</button>`
+            : `<button class="btn-primary" style="width:100%;opacity:.5;" disabled>✓ Bereits gesetzt</button>`;
+        html += '</div>';
+    } else if (d.clinch) {
+        const qualified = [];
+        for (const g of Object.keys(d.clinch)) d.clinch[g].top2.forEach(t => { const pt = d.clinch[g].perTeam[t]; if (!pt.c1 && !pt.c2) qualified.push(`${dn(t)} (${g})`); });
+        if (qualified.length) html += `<div class="card" style="border-left:4px solid #fb923c;"><h3 style="margin-top:0;">✅ Schon qualifiziert</h3>
+            <p style="font-size:12px;color:var(--text-muted);margin-top:0;">${qualified.join(', ')} – exakte Platzierung (1./2.) noch offen, daher noch nicht ins Bracket setzbar.</p></div>`;
+    }
     html += '<div class="card"><h3 style="margin-top:0;">📊 Gruppentabellen</h3>';
     for (const g of Object.keys(d.standings)) {
         html += `<div style="margin:10px 0 4px;font-weight:700;color:var(--accent-green);">Gruppe ${g}</div><table style="width:100%;font-size:12px;border-collapse:collapse;">`;
@@ -1832,9 +1851,11 @@ function renderKoPreview(d) {
             const inThird = t.rank === 3 && advancingThirds.has(g);
             const mark = t.rank <= 2 ? '✓' : (t.rank === 3 ? (inThird ? '✓' : '✗') : '');
             const col = (t.rank <= 2 || inThird) ? 'var(--accent-green)' : 'var(--text-muted)';
+            const ci = d.clinch && d.clinch[g] && d.clinch[g].perTeam[t.team];
+            const badge = ci ? (ci.c1 ? ' <span style="color:var(--accent-green);font-weight:700;">🔒1.</span>' : ci.c2 ? ' <span style="color:var(--accent-green);font-weight:700;">🔒2.</span>' : ci.top2 ? ' <span style="color:var(--accent-green);">✅</span>' : '') : '';
             html += `<tr style="border-bottom:1px solid var(--border);${t._amb ? 'background:rgba(251,146,60,.08);' : ''}">
                 <td style="padding:3px 4px;color:${col};width:18px;">${t.rank}</td>
-                <td style="padding:3px 4px;">${f(t.team)} ${dn(t.team)}${t._amb ? ' ⚠️' : ''}</td>
+                <td style="padding:3px 4px;">${f(t.team)} ${dn(t.team)}${badge}${t._amb ? ' ⚠️' : ''}</td>
                 <td style="padding:3px 4px;text-align:right;color:var(--text-muted);">${t.GD >= 0 ? '+' : ''}${t.GD}</td>
                 <td style="padding:3px 4px;text-align:right;color:var(--text-muted);">${t.GF}</td>
                 <td style="padding:3px 6px;text-align:right;font-weight:700;">${t.Pts}</td>
@@ -1884,28 +1905,36 @@ function renderKoPreview(d) {
     }
     const btnStyle = d.complete ? 'width:100%;' : 'width:100%;opacity:.5;';
     html += `<div class="card" style="border-left:4px solid var(--accent-green);">
-        <button class="btn-primary" style="${btnStyle}" ${d.complete ? '' : 'disabled'} onclick="applyKo(false)">✅ Zuordnung übernehmen</button>`;
-    if (!d.complete) html += `<button class="btn-secondary" style="width:100%;margin-top:8px;" onclick="applyKo(true)">⚠️ Trotzdem übernehmen (Test)</button>`;
+        <button class="btn-primary" style="${btnStyle}" ${d.complete ? '' : 'disabled'} onclick="applyKo('full')">✅ Zuordnung übernehmen</button>`;
+    if (!d.complete) html += `<button class="btn-secondary" style="width:100%;margin-top:8px;" onclick="applyKo('force')">⚠️ Trotzdem übernehmen (Test)</button>`;
     html += '</div>';
     box.innerHTML = html;
 }
-async function applyKo(force) {
-    if (!confirm(force ? 'Unvollständige Gruppenphase – wirklich übernehmen?' : 'Zuordnung jetzt in die KO-Spiele schreiben?')) return;
-    const r32 = (koPreviewData.r32 || []).map(m => {
-        const ea = document.getElementById('ko-r32a-' + m.matchId), eb = document.getElementById('ko-r32b-' + m.matchId);
-        return { matchId: m.matchId, teamA: ea ? ea.value.trim() : '', teamB: eb ? eb.value.trim() : '' };
-    });
-    const advancers = {};
-    (koPreviewData.pendingAdvancers || []).forEach(p => {
-        const sel = document.querySelector(`input[name="adv-${p.matchId}"]:checked`);
-        if (sel) advancers[p.matchId] = sel.value;
-    });
+async function applyKo(mode) { // 'full' | 'force' | 'early'
+    const msg = mode === 'early' ? 'Nur die bereits sicher qualifizierten Mannschaften (feststehende Platzierung) vorzeitig setzen?'
+              : mode === 'force' ? 'Gruppenphase unvollständig – trotzdem komplett übernehmen (Test)?'
+              : 'Zuordnung jetzt in die KO-Spiele schreiben?';
+    if (!confirm(msg)) return;
+    const payload = { adminPass: urlAdminPass };
+    if (mode === 'early') {
+        payload.mode = 'early';
+    } else {
+        payload.r32 = (koPreviewData.r32 || []).map(m => {
+            const ea = document.getElementById('ko-r32a-' + m.matchId), eb = document.getElementById('ko-r32b-' + m.matchId);
+            return { matchId: m.matchId, teamA: ea ? ea.value.trim() : '', teamB: eb ? eb.value.trim() : '' };
+        });
+        payload.advancers = {};
+        (koPreviewData.pendingAdvancers || []).forEach(p => {
+            const sel = document.querySelector(`input[name="adv-${p.matchId}"]:checked`);
+            if (sel) payload.advancers[p.matchId] = sel.value;
+        });
+        if (mode === 'force') payload.force = true;
+    }
     try {
-        const r = await fetch('/api/admin/ko/apply', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ adminPass: urlAdminPass, r32, advancers, force }) });
+        const r = await fetch('/api/admin/ko/apply', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
         const res = await r.json();
         if (!r.ok || res.ok === false) { showToast(res.error || 'Fehler', 'error'); return; }
-        showToast(`✅ ${res.count} Zuordnung(en) gesetzt`, 'success');
+        showToast(res.count > 0 ? `✅ ${res.count} Zuordnung(en) gesetzt` : 'Bereits aktuell – keine Änderung nötig', 'success');
         await refreshData();
         loadKoPreview();
     } catch (e) { showToast('Fehler: ' + e.message, 'error'); }
