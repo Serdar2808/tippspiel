@@ -1052,7 +1052,13 @@ function renderMatches(data) {
     const todayStart=new Date();todayStart.setHours(0,0,0,0);
     const tmrStart=new Date(todayStart);tmrStart.setDate(tmrStart.getDate()+1);
     // Haupt-Register
-    if     (currentFilter==='heute')   matches=matches.filter(m=>m.kickoff>=todayStart.getTime()&&m.kickoff<tmrStart.getTime());
+    if     (currentFilter==='heute')   {
+        // "Heute" = der Spieltag wie die 9-Uhr-Erinnerung: festes Fenster von 09:00 unserer Zeit
+        // bis 09:00 am nächsten Tag. So fallen ALLE (US-)Spiele eines Tages – inkl. der Partien
+        // nach Mitternacht unserer Zeit – in denselben "Heute"-Tag. Vor 09:00 zählt noch der Vortag.
+        const s=new Date(now); if(s.getHours()<9) s.setDate(s.getDate()-1); s.setHours(9,0,0,0);
+        const dayStart=s.getTime(), dayEnd=dayStart+86400000;
+        matches=matches.filter(m=>m.kickoff>=dayStart && m.kickoff<dayEnd); }
     else if(currentFilter==='beendet') matches=matches.filter(m=>m.finished);
     else if(currentFilter==='ko')      matches=matches.filter(m=>m.type==='ko');
     else if(currentFilter.startsWith('gr-')) {
