@@ -24,7 +24,7 @@ module.exports = function initWmAutoSync(deps, opts = {}) {
     const LEAGUE  = opts.leagueShortcut || 'wm26';
     const SEASON  = opts.season || '2026';
     const LIVE    = opts.live === true;
-    const DRY_RUN = opts.dryRun === true;
+    const DRY_RUN = opts.dryRun === false;
     const POLL_MS = opts.pollSec ? opts.pollSec * 1000
                   : opts.intervalMin ? opts.intervalMin * 60000
                   : (LIVE ? 60000 : 180000);
@@ -77,10 +77,13 @@ module.exports = function initWmAutoSync(deps, opts = {}) {
             "SELECT id, type, teamA, teamB, kickoff, finished FROM matches WHERE teamA NOT LIKE 'TBA%' AND teamB NOT LIKE 'TBA%'"
         ).all();
         for (const m of rows) {
-            if (!within1Day(m.kickoff, when)) continue;
             const direct  = namesEqual(m.teamA, a1) && namesEqual(m.teamB, a2);
             const swapped = namesEqual(m.teamA, a2) && namesEqual(m.teamB, a1);
-            if (direct || swapped) return m;
+            if (!(direct || swapped)) continue;
+            // Gruppenspiele: Datum muss grob passen (schützt vor Namens-Kollisionen).
+            // KO-Spiele: Teamnamen sind eindeutig genug → Datum ignorieren, da die
+            // Kickoff-Zeiten der KO-Shells Platzhalter sein können.
+            if (m.type === 'ko' || within1Day(m.kickoff, when)) return m;
         }
         return null;
     }
@@ -100,6 +103,26 @@ module.exports = function initWmAutoSync(deps, opts = {}) {
     function orient(dbMatch, apiMatch, p1, p2) {
         if (namesEqual(dbMatch.teamA, apiMatch.team1?.teamName)) return [p1, p2];
         if (namesEqual(dbMatch.teamA, apiMatch.team2?.teamName)) return [p2, p1];
+        return null;
+    }
+
+    // ── 90-Minuten-Stand aus den Tor-Events (nur für KO-Wertung) ─────────────
+    // Verlängerung/Elfmeter (matchMinute > 90) zählen NICHT. Gibt {s1,s2}
+    // bezogen auf team1/team2 der API zurück – oder null, wenn keine
+    // verlässliche Ableitung möglich ist (dann trägt der Admin manuell ein).
+    function ninetyMinScore(am) {
+        const goals = Array.isArray(am.goals) ? am.goals : [];
+        const reg = goals.filter(x => x.matchMinute == null || x.matchMinute <= 90);
+        if (!reg.length) {
+            if (goals.length === 0) {
+                const end = (am.matchResults || []).find(r => r.resultTypeID === ENDERGEBNIS_TYPE_ID);
+                if (end && end.pointsTeam1 === 0 && end.pointsTeam2 === 0) return { s1: 0, s2: 0 };
+                return null; // beendet, aber keine Tordaten → nicht raten
+            }
+            return { s1: 0, s2: 0 }; // Tore erst in der Verlängerung → 0:0 nach 90
+        }
+        const last = reg[reg.length - 1];
+        if (last.scoreTeam1 != null && last.scoreTeam2 != null) return { s1: last.scoreTeam1, s2: last.scoreTeam2 };
         return null;
     }
 
@@ -171,22 +194,33 @@ module.exports = function initWmAutoSync(deps, opts = {}) {
         let applied = 0;
         for (const am of apiMatches) {
             if (!am.matchIsFinished) continue;
-            const end = (am.matchResults || []).find(r => r.resultTypeID === ENDERGEBNIS_TYPE_ID);
-            if (!end) continue;
 
             let m = db.prepare('SELECT id, type, teamA, teamB, finished FROM matches WHERE extId = ?').get(am.matchID);
             if (!m) m = findDbMatch(am);
             if (!m) continue;
-            if (m.type === 'ko') continue;
             if (m.finished === 1) continue;
 
-            const o = orient(m, am, end.pointsTeam1, end.pointsTeam2);
-            if (!o) { console.warn(`${TAG} Reihenfolge unklar bei ${m.teamA} vs ${m.teamB} (extId ${am.matchID}) – übersprungen.`); continue; }
-            const pA = parseScore(o[0]), pB = parseScore(o[1]);
+            // Score je nach Spieltyp bestimmen.
+            let pA, pB;
+            if (m.type === 'ko') {
+                // KO: nur der Stand nach 90 Min zählt (Verlängerung/Elfmeter NICHT).
+                const ninety = ninetyMinScore(am);
+                if (!ninety) continue; // keine verwertbaren Tordaten → Admin trägt manuell ein
+                const o = orient(m, am, ninety.s1, ninety.s2);
+                if (!o) { console.warn(`${TAG} Reihenfolge unklar bei KO ${m.teamA} vs ${m.teamB} (extId ${am.matchID}) – übersprungen.`); continue; }
+                pA = parseScore(o[0]); pB = parseScore(o[1]);
+            } else {
+                const end = (am.matchResults || []).find(r => r.resultTypeID === ENDERGEBNIS_TYPE_ID);
+                if (!end) continue;
+                const o = orient(m, am, end.pointsTeam1, end.pointsTeam2);
+                if (!o) { console.warn(`${TAG} Reihenfolge unklar bei ${m.teamA} vs ${m.teamB} (extId ${am.matchID}) – übersprungen.`); continue; }
+                pA = parseScore(o[0]); pB = parseScore(o[1]);
+            }
             if (pA === undefined || pB === undefined || pA === null || pB === null) continue;
 
-            if (DRY_RUN) console.log(`${TAG} [DRY-RUN] würde eintragen: ${m.teamA} ${pA}:${pB} ${m.teamB} (extId ${am.matchID})`);
-            else { await applyResult(m, pA, pB); console.log(`${TAG} eingetragen: ${m.teamA} ${pA}:${pB} ${m.teamB} (extId ${am.matchID})`); }
+            const label = m.type === 'ko' ? ' [KO/90Min]' : '';
+            if (DRY_RUN) console.log(`${TAG} [DRY-RUN] würde eintragen${label}: ${m.teamA} ${pA}:${pB} ${m.teamB} (extId ${am.matchID})`);
+            else { await applyResult(m, pA, pB); console.log(`${TAG} eingetragen${label}: ${m.teamA} ${pA}:${pB} ${m.teamB} (extId ${am.matchID})`); }
             applied++;
         }
         if (applied && DRY_RUN) console.log(`${TAG} DRY-RUN: ${applied} Ergebnis(se) wären eingetragen worden.`);

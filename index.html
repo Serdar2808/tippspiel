@@ -176,9 +176,22 @@
             border:1px solid var(--border);border-radius:20px;font-size:12px;font-weight:600;
             cursor:pointer;white-space:nowrap;flex-shrink:0; }
         .phase-btn.active { background:var(--primary);color:white;border-color:var(--primary); }
+        .stats-nav { display:flex;gap:6px;padding:0 12px 10px;overflow-x:auto;scrollbar-width:none; }
+        .stats-nav::-webkit-scrollbar { display:none; }
+        .stats-nav-btn { height:32px;padding:0 13px;background:var(--card-bg);color:var(--text-muted);
+            border:1px solid var(--border);border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0; }
+        .stats-nav-btn.active { background:rgba(204,255,0,.12);border-color:var(--accent-green);color:var(--accent-green); }
+        .stats-section { display:none; }
+        .stat-rank { font-size:10px;color:var(--text-muted);font-weight:700;margin-top:2px; }
+        .stat-rank b { color:var(--accent-green); }
         .achievement { display:inline-flex;align-items:center;gap:3px;background:rgba(204,255,0,.08);
             border:1px solid rgba(204,255,0,.2);border-radius:20px;padding:2px 7px;
             font-size:11px;cursor:default; }
+        .achievement-dim { background:rgba(139,148,158,.08);border-color:rgba(139,148,158,.25);
+            color:var(--text-muted);opacity:.55;filter:grayscale(1); }
+        .done-badge { display:inline-flex;align-items:center;gap:3px;background:rgba(204,255,0,.12);
+            border:1px solid var(--accent-green);color:var(--accent-green);border-radius:20px;
+            padding:1px 8px;font-size:11px;font-weight:700; }
     </style>
 </head>
 <body>
@@ -344,12 +357,36 @@
 <!-- STATS TAB -->
 <div id="tab-stats" class="tab-content">
     <h2 class="page-title">📈 Statistiken</h2>
-    <div id="personal-stats-card" class="card" style="display:none;"><h3>Meine Statistiken</h3><div id="personal-stats"></div></div>
-	<div class="card"><h3>👑 MVP der Spielnacht</h3><div id="stats-mvp">Lade...</div></div>
-    <div class="card"><h3>📊 Kletterer & Absteiger</h3><div id="stats-movers">Lade...</div></div>
-    <div class="card"><h3>🎲 Mutigste Tipps</h3><div id="stats-bold">Lade...</div></div>
-    <div class="card"><h3>Ranglisten-Verlauf</h3><div id="rankings-chart"><p style="color:var(--text-muted);text-align:center;padding:20px;">Lade...</p></div></div>
-    <div class="card"><h3>Head-to-Head</h3><div id="h2h-content"></div></div>
+    <div class="stats-nav">
+        <button class="stats-nav-btn active" onclick="switchStatsTab('st-ich',this)">👤 Spieler</button>
+        <button class="stats-nav-btn" onclick="switchStatsTab('st-rennen',this)">🏆 Rennen</button>
+        <button class="stats-nav-btn" onclick="switchStatsTab('st-highlights',this)">🔥 Highlights</button>
+        <button class="stats-nav-btn" onclick="switchStatsTab('st-duell',this)">⚔️ Duell</button>
+    </div>
+
+    <div id="st-ich" class="stats-section" style="display:block;">
+        <div id="personal-stats-card" class="card" style="display:none;">
+            <div id="personal-stats-head"></div>
+            <div id="personal-stats"></div>
+        </div>
+    </div>
+
+    <div id="st-rennen" class="stats-section">
+        <div class="card"><h3>👑 MVP der Spielnacht</h3><div id="stats-mvp">Lade...</div></div>
+        <div class="card"><h3>📊 Kletterer & Absteiger</h3><div id="stats-movers">Lade...</div></div>
+        <div class="card"><h3>🎯 Ø Punkte/Spiel nach Phase</h3><div id="stats-phase">Lade...</div></div>
+        <div class="card"><h3>Ranglisten-Verlauf</h3><div id="rankings-chart"><p style="color:var(--text-muted);text-align:center;padding:20px;">Lade...</p></div></div>
+    </div>
+
+    <div id="st-highlights" class="stats-section">
+        <div class="card"><h3>🎲 Mutigste Tipps</h3><div id="stats-bold">Lade...</div></div>
+        <div class="card"><h3>🏟️ Hall of Fame &amp; Shame</h3><div id="stats-hof">Lade...</div></div>
+        <div class="card"><h3>⚽ Tor-Schätzer</h3><div id="stats-goalbias">Lade...</div></div>
+    </div>
+
+    <div id="st-duell" class="stats-section">
+        <div class="card"><h3>Head-to-Head</h3><div id="h2h-content"></div></div>
+    </div>
 </div>
 
 <!-- ADMIN TAB -->
@@ -360,6 +397,7 @@
         <button class="admin-nav-btn" onclick="switchAdminTab('adm-users',this)">👥 User</button>
         <button class="admin-nav-btn" onclick="switchAdminTab('adm-results',this)">⚽ Ergebnisse</button>
         <button class="admin-nav-btn" onclick="switchAdminTab('adm-tips',this)">✏️ Tipps</button>
+        <button class="admin-nav-btn" onclick="switchAdminTab('adm-ko',this)">🏆 KO</button>
     </div>
     
     <div id="adm-dashboard" class="admin-section" style="display:block;">
@@ -409,6 +447,20 @@
             <div id="admin-tip-editor"></div>
         </div>
     </div>
+
+    <div id="adm-ko" class="admin-section">
+        <div class="card" style="border-left:4px solid var(--accent-green);">
+            <h3>🏆 KO-Zuordnung</h3>
+            <p style="font-size:13px;color:var(--text-muted);margin-top:0;margin-bottom:12px;">
+                Berechnet aus den Gruppenergebnissen die Tabellen, die 8 besten Dritten und die
+                komplette Sechzehntelfinal-Zuordnung nach dem offiziellen FIFA-Schlüssel.
+                Du prüfst die Vorschau und übernimmst sie mit einem Klick. Es werden nur
+                Mannschaften gesetzt, nie Ergebnisse – beendete Spiele bleiben unberührt.
+            </p>
+            <button class="btn-primary" style="width:100%;" onclick="loadKoPreview()">🔄 Vorschau berechnen</button>
+        </div>
+        <div id="ko-preview"></div>
+    </div>
 </div>
 
 <nav class="bottom-nav" id="bottom-nav">
@@ -425,7 +477,7 @@ const CHART_COLORS=['#ccff00','#38bdf8','#fb923c','#f472b6','#a78bfa','#34d399',
 const REACTION_EMOJIS = ['🎯','😭','🔥','😱','🤩','😤'];
 const TIP_REACTION_EMOJIS = ['😀','😂','🙁','😭','😡','😳','🤑','👍','👏','💪','👎'];
 
-let globalData=null, adminMode=false, urlAdminPass='', myToken='', currentFilter='alle', currentTipState='offen', currentRankingPhase='all', adminTipMatchId='', rankingLive=false, currentGroupTab='A';
+let globalData=null, adminMode=false, urlAdminPass='', myToken='', currentFilter='alle', currentTipState='offen', currentRankingPhase='all', adminTipMatchId='', rankingLive=false, currentGroupTab='A', currentStatsTab='st-ich', statsUserId=null;
 
 // ── Hilfsfunktionen ─────────────────────────────────────────────────────────
 // Anzeigename: Bosnien und Herzegowina → Bosnien
@@ -481,14 +533,25 @@ function computeAchievements(data, userId) {
     const badges = [];
     const finished = data.matches.filter(m=>m.finished).sort((a,b)=>a.kickoff-b.kickoff);
     const tips = data.tips.filter(t=>t.userId===userId&&t.tipA!==null);
-    // 🎯 Hellseher: 3+ Exakt in Folge
-    let seq=0,max=0;
-    finished.forEach(m=>{ const t=tips.find(t=>t.matchId===m.id); if(t&&t.points===3){seq++;max=Math.max(max,seq);}else seq=0; });
-    if(max>=3) badges.push({icon:'🎯',label:'Hellseher',desc:`${max}× Exakt in Folge`});
-    // 🔥 On Fire: 5+ richtig in Folge
-    seq=0;max=0;
-    finished.forEach(m=>{ const t=tips.find(t=>t.matchId===m.id); if(t&&t.points>0){seq++;max=Math.max(max,seq);}else seq=0; });
-    if(max>=5) badges.push({icon:'🔥',label:'On Fire',desc:`${max}× richtig in Folge`});
+    // Zähler = pro vollendete N-er-Stufe ein "×": eine 12er-Serie (Schwelle 5) = 2×,
+    // drei separate 5er = 3×, eine 20er = 4×. So zählt Länge proportional, lange
+    // ununterbrochene Serien werden nicht bestraft. active = jüngste Serie läuft noch.
+    const streakStat=(hitFn,threshold)=>{
+        let run=0,count=0,best=0;
+        finished.forEach(m=>{ const t=tips.find(t=>t.matchId===m.id);
+            if(t&&hitFn(t)){ run++; }
+            else { count+=Math.floor(run/threshold); best=Math.max(best,run); run=0; } });
+        count+=Math.floor(run/threshold); best=Math.max(best,run);   // laufende Serie am Ende
+        return {count, active:run>=threshold, best, cur:run};
+    };
+    // 🎯 Hellseher: Serien von ≥3 Exakt. Zähler = wie oft erreicht. Inaktiv => ausgegraut.
+    { const s=streakStat(t=>t.points===3, 3);
+      if(s.count>=1) badges.push({icon:'🎯',label:'Hellseher',count:s.count,dim:!s.active,
+        desc:s.active?`${s.count}× Hellseher · aktuell aktiv (${s.cur}× Exakt in Folge)`:`${s.count}× erreicht · aktuell unterbrochen (Best ${s.best}× Exakt)`}); }
+    // 🔥 On Fire: Serien von ≥5 Treffern. Zähler = wie oft erreicht. Inaktiv => ausgegraut.
+    { const s=streakStat(t=>t.points>0, 5);
+      if(s.count>=1) badges.push({icon:'🔥',label:'On Fire',count:s.count,dim:!s.active,
+        desc:s.active?`${s.count}× On Fire · aktuell aktiv (${s.cur}× in Folge)`:`${s.count}× erreicht · aktuell unterbrochen (Best ${s.best}×)`}); }
     // 💯 Vollständig: alle beendeten Spiele getippt
     if(finished.length>5&&tips.filter(t=>finished.find(m=>m.id===t.matchId)).length===finished.length)
         badges.push({icon:'💯',label:'Vollständig',desc:'Alle Spiele getippt'});
@@ -547,11 +610,11 @@ function renderTodayOverview(data) {
     const today=data.matches.filter(m=>m.kickoff>=ts.getTime()&&m.kickoff<te.getTime()).sort((a,b)=>a.kickoff-b.kickoff);
     if(!today.length){el.style.display='none';return;}
     // Laufende Spiele stehen oben als volle Karte → hier nur die übrigen auflisten, Zählung bleibt vollständig
-    const visible=today.filter(m=>!(!m.finished&&m.kickoff<=now&&now<=m.kickoff+115*60000));
+    const visible=today.filter(m=>!(!m.finished&&m.kickoff<=now&&now<=m.kickoff+150*60000));
     if(!visible.length){el.style.display='none';return;}
     const me=myToken?data.users.find(u=>u.token===myToken):null;
     const rows=visible.map(m=>{
-        const isLive=!m.finished&&m.kickoff<=now&&now<=m.kickoff+115*60000;
+        const isLive=!m.finished&&m.kickoff<=now&&now<=m.kickoff+150*60000;
         const tip=me?data.tips.find(t=>t.matchId===m.id&&t.userId===me.id&&t.tipA!==null):null;
         const time=new Date(m.kickoff).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
         let status;
@@ -990,7 +1053,7 @@ function renderMatches(data) {
     const tmrStart=new Date(todayStart);tmrStart.setDate(tmrStart.getDate()+1);
     // Haupt-Register
     if     (currentFilter==='heute')   matches=matches.filter(m=>m.kickoff>=todayStart.getTime()&&m.kickoff<tmrStart.getTime());
-    else if(currentFilter==='beendet') matches=matches.filter(m=>m.finished&&now>m.kickoff+150*60000);
+    else if(currentFilter==='beendet') matches=matches.filter(m=>m.finished);
     else if(currentFilter==='ko')      matches=matches.filter(m=>m.type==='ko');
     else if(currentFilter.startsWith('gr-')) {
         const g=currentFilter.replace('gr-','');
@@ -999,19 +1062,26 @@ function renderMatches(data) {
     // Unter-Register: getippt / offen (bezogen auf eingeloggten Nutzer)
     const _tipped=m=>{const t=me?data.tips.find(x=>x.matchId===m.id&&x.userId===me.id):null;return !!(t&&t.tipA!==null&&t.tipA!==undefined);};
     matches=matches.filter(currentTipState==='getippt'?_tipped:(m=>!_tipped(m)));
-    // Sortierung: offen => nächste oben (vergangene unten); getippt => neueste oben
-    if(currentTipState==='getippt') matches.sort((a,b)=>b.kickoff-a.kickoff);
-    else matches.sort((a,b)=>((a.kickoff<now)-(b.kickoff<now))||(a.kickoff-b.kickoff));
+    // Sortierung (beide Unter-Register): oben = laufend/frisch beendet, dann
+    //   offen => nächste oben (vergangene unten);  getippt => neueste oben.
+    // Oben bleiben: laufende UND frisch beendete Spiele – 2,5h ab Anpfiff (so findet
+    // man ein gerade abgepfiffenes Spiel sofort, taucht zusätzlich im Beendet-Filter auf).
+    const _top=m=>{const tba=m.type==='ko'&&(String(m.teamA).startsWith('TBA')||String(m.teamB).startsWith('TBA'));return (!tba&&m.kickoff<=now&&now<=m.kickoff+150*60000)?1:0;};
+    if(currentTipState==='getippt') matches.sort((a,b)=>_top(b)-_top(a)||b.kickoff-a.kickoff);
+    else matches.sort((a,b)=>_top(b)-_top(a)||((a.kickoff<now)-(b.kickoff<now))||(a.kickoff-b.kickoff));
     if(!matches.length){
         document.getElementById('matches-list').innerHTML=`<p style="text-align:center;color:var(--text-muted);padding:40px;">${currentTipState==='getippt'?'Hier hast du noch nichts getippt.':'Keine offenen Spiele hier 🎉'}</p>`;
         return;
     }
     const ptslabels=['Daneben 😬','Tendenz 👍','Differenz 🎯','Exakt! 🏆'];
+    const _nightIds=currentNightIds(data);
     document.getElementById('matches-list').innerHTML=matches.map(m=>{
         const tip=me?data.tips.find(t=>t.matchId===m.id&&t.userId===me.id):null;
         const isTBA = m.type==='ko' && (m.teamA.startsWith('TBA')||m.teamB.startsWith('TBA'));
-        const isLive = !m.finished && !isTBA && m.kickoff<=now && now<=m.kickoff+115*60000;
-        const isSoon = !m.finished && m.kickoff>now && m.kickoff<=now+86400000;
+        const _inWin = m.kickoff<=now && now<=m.kickoff+150*60000;   // 2,5h ab Anpfiff
+        const isLive = !m.finished && !isTBA && _inWin;
+        const isFreshDone = m.finished && _inWin;                    // gerade beendet, noch im Fenster
+        const isSoon = !m.finished && m.kickoff>now && _nightIds.has(m.id);
         const isLocked=m.kickoff<now||m.finished||isTBA;
         const cd=formatCountdown(m.kickoff);
         let resultHtml='';
@@ -1040,7 +1110,7 @@ function renderMatches(data) {
         return `<div class="card" id="card-${m.id}" style="border-left:4px solid ${borderColor};">
             <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;">
                 <span>${isSoon?'<span class="soon-dot"></span>':''}${new Date(m.kickoff).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})} Uhr ${m.type==='ko'?'· '+m.group:'· Gr.'+m.group}${m.finished?' <span style="color:var(--accent-green);font-weight:700">✓</span>':''}</span>
-                ${isLive?'<span class="live-badge">🔴 Live</span>':(!isLocked&&cd?`<span class="countdown-timer" data-kickoff="${m.kickoff}" style="color:#fb923c;font-weight:700;font-size:12px;">${cd}</span>`:'')}
+                ${isLive?'<span class="live-badge">🔴 Live</span>':isFreshDone?'<span class="done-badge">🏁 Gerade beendet</span>':(!isLocked&&cd?`<span class="countdown-timer" data-kickoff="${m.kickoff}" style="color:#fb923c;font-weight:700;font-size:12px;">${cd}</span>`:'')}
             </div>
             <strong style="font-size:1.05rem;display:block;text-align:center;margin:6px 0;">${isTBA?'⏳ Teams noch nicht bekannt':`${f(m.teamA)} ${dn(m.teamA)} vs ${dn(m.teamB)} ${f(m.teamB)}`}</strong>
             ${resultHtml}${liveHtml}${predHtml}
@@ -1147,7 +1217,7 @@ function renderRankings(data) {
         : sorted.map((u,i)=>{
             const medal=['🥇','🥈','🥉'][i]||`${i+1}.`;
             const badges=computeAchievements(data,u.id);
-            const badgeHtml=badges.length?`<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;">${badges.map(b=>`<span class="achievement" title="${b.desc}">${b.icon} ${b.label}</span>`).join('')}</div>`:'';
+            const badgeHtml=badges.length?`<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;">${badges.map(b=>`<span class="achievement${b.dim?' achievement-dim':''}" title="${b.desc}">${b.icon} ${b.label}${b.count?` ${b.count}×`:''}</span>`).join('')}</div>`:'';
             const isMe=u.token===myToken;
             // Bewegung ggü. offizieller Tabelle (nur im Live-Modus)
             let mover='';
@@ -1214,9 +1284,10 @@ function renderGroups(matches) {
 
     // Spiele der gewählten Gruppe (neueste oben – konsistent mit Spiele-Tab)
     const gm=matches.filter(m=>m.group===g).sort((a,b)=>a.kickoff-b.kickoff);
+    const _nightIds=currentNightIds({matches});
     const matchHtml=`<div class="card"><h3>Gruppe ${g} – Spiele</h3>${gm.length?gm.map(m=>{
         const isLive=!m.finished&&m.liveA!=null;
-        const isSoon=!m.finished&&m.kickoff>Date.now()&&m.kickoff<=Date.now()+86400000;
+        const isSoon=!m.finished&&m.kickoff>Date.now()&&_nightIds.has(m.id);
         const dt=new Date(m.kickoff).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
         let right;
         if(m.finished) right=`<b style="color:var(--accent-green)">${m.resultA}:${m.resultB}</b>`;
@@ -1253,6 +1324,20 @@ function getSpielnaechte(data) {
         b.label = new Date(b.start).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' });
     });
     return blocks;
+}
+
+// ── IDs der aktuell/als-nächstes laufenden Spielnacht (für Blink-Punkt) ───────
+// Nur Spiele DIESER Spielnacht sollen den gelben Punkt bekommen – nicht
+// pauschal alle Spiele der nächsten 24 h (die mehrere Spielnächte umfassen können).
+function currentNightIds(data){
+    const now=Date.now();
+    const nights=getSpielnaechte(data);
+    for(const n of nights){
+        if(!n.matches.some(m=>!m.finished)) continue;          // Nacht schon komplett beendet
+        if(n.start <= now + 86400000) return new Set(n.matches.map(m=>m.id)); // läuft / startet < 24h
+        return new Set();                                       // nächste offene Nacht ist > 24h weg
+    }
+    return new Set();
 }
 
 // ── Punkte/Exakt/Tendenz je User über eine Match-Menge ───────────────────────
@@ -1399,55 +1484,194 @@ function renderBoldHits(data) {
 
 
 
-// ── Stats ─────────────────────────────────────────────────────────────────────
+// ── Stats: Hilfs-Leaderboard für Ränge (mit Gleichstand) ─────────────────────
+function _statLeaderboard(data){
+    return data.users.map(u=>{
+        const ft=data.tips.filter(t=>t.userId===u.id&&t.tipA!=null)
+            .filter(t=>{const m=data.matches.find(x=>x.id===t.matchId);return m&&m.finished;});
+        const tot=ft.length, pts=ft.reduce((s,t)=>s+(t.points||0),0);
+        const hits=ft.filter(t=>(t.points||0)>=1).length;
+        return {id:u.id, avg:tot?pts/tot:0, hr:tot?hits/tot:0, tot, pts};
+    });
+}
+function _rankBy(board, key){
+    const sorted=[...board].sort((a,b)=>b[key]-a[key]);
+    const r={}; let cur=0, prev=null;
+    sorted.forEach((u,i)=>{ if(prev===null||u[key]!==prev){cur=i+1;prev=u[key];} r[u.id]=cur; });
+    return r;
+}
+
+// ── 👤 Persönliche Statistiken (mit Spieler-Dropdown) ─────────────────────────
+function renderPersonalStatsCard(data){
+    const card=document.getElementById('personal-stats-card');
+    const head=document.getElementById('personal-stats-head');
+    if(!card||!head) return;
+    if(!data.users.length){ card.style.display='none'; return; }
+    card.style.display='block';
+    const me=myToken?data.users.find(u=>u.token===myToken):null;
+    if(statsUserId===null || !data.users.find(u=>u.id===statsUserId))
+        statsUserId = me ? me.id : data.users[0].id;
+    const opts=[...data.users].sort((a,b)=>a.name.localeCompare(b.name))
+        .map(u=>`<option value="${u.id}" ${u.id===statsUserId?'selected':''}>${u.name}${me&&u.id===me.id?' (ich)':''}</option>`).join('');
+    head.innerHTML=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+        <h3 style="margin:0;flex-shrink:0;color:var(--accent-green);">📊 Statistiken</h3>
+        <select onchange="statsUserId=this.value;renderPersonalStatsCard(globalData)" style="flex:1;">${opts}</select></div>`;
+    renderPersonalStats(data, statsUserId, !!(me&&statsUserId===me.id));
+}
+
+function renderPersonalStats(data, userId, isSelf){
+    const el=document.getElementById('personal-stats'); if(!el) return;
+    const u=data.users.find(x=>x.id===userId); if(!u){el.innerHTML='';return;}
+    const myTips=data.tips.filter(t=>t.userId===userId);
+    const finishedTips=myTips.filter(t=>{const m=data.matches.find(x=>x.id===t.matchId);return m&&m.finished&&t.tipA!==null;});
+    const total=finishedTips.length, pts=finishedTips.reduce((s,t)=>s+(t.points||0),0);
+    const exact=finishedTips.filter(t=>t.points===3).length, diff=finishedTips.filter(t=>t.points===2).length;
+    const tend=finishedTips.filter(t=>t.points===1).length, miss=finishedTips.filter(t=>t.points===0).length;
+    const hitRate=total>0?Math.round(((exact+diff+tend)/total)*100):0;
+    const avgPts=total>0?(pts/total).toFixed(2):'-';
+    const now=Date.now();
+    const realGames=data.matches.filter(m=>!m.teamA.startsWith('TBA'));
+    const openGames=realGames.filter(m=>!m.finished&&m.kickoff>now);
+    const closedGames=realGames.filter(m=>m.finished||m.kickoff<=now);
+    const _mine=m=>myTips.find(t=>t.matchId===m.id&&t.tipA!==null);
+    const openTipped=openGames.filter(_mine).length;
+    const closedTipped=closedGames.filter(_mine).length;
+    const totalTipped=openTipped+closedTipped;
+    // Ränge (Trefferquote + Ø Punkte)
+    const board=_statLeaderboard(data);
+    const rankHr=_rankBy(board,'hr'), rankAvg=_rankBy(board,'avg');
+    const N=data.users.length;
+    const rkHr  = total>0?`<div class="stat-rank">Rang <b>${rankHr[userId]}</b>/${N}</div>`:'';
+    const rkAvg = total>0?`<div class="stat-rank">Rang <b>${rankAvg[userId]}</b>/${N}</div>`:'';
+    // Form letzte 5
+    const last5=finishedTips.map(t=>({t,m:data.matches.find(x=>x.id===t.matchId)})).filter(x=>x.m).sort((a,b)=>a.m.kickoff-b.m.kickoff).slice(-5);
+    const formHtml=last5.length?last5.map(x=>{const p=x.t.points||0;const g=p>=1;return `<span title="${dn(x.m.teamA)} ${x.m.resultA}:${x.m.resultB} ${dn(x.m.teamB)} · ${p}P" style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:${g?'#22c55e':'#ef4444'};color:#0d1117;font-weight:800;font-size:12px;">${p}</span>`;}).join(''):'<span style="color:var(--text-muted);font-size:12px;">noch keine</span>';
+    const box1=isSelf
+        ? `<div class="stat-box"><div class="stat-val">${totalTipped}/${realGames.length}</div><div class="stat-lbl">Tipps abgegeben</div></div>`
+        : `<div class="stat-box"><div class="stat-val">${pts}</div><div class="stat-lbl">Punkte gesamt</div></div>`;
+    el.innerHTML=`
+        <div class="stat-grid">
+            ${box1}
+            <div class="stat-box"><div class="stat-val">${hitRate}%</div><div class="stat-lbl">Trefferquote</div>${rkHr}</div>
+            <div class="stat-box"><div class="stat-val">${avgPts}</div><div class="stat-lbl">Ø Punkte/Spiel</div>${rkAvg}</div>
+            <div class="stat-box"><div class="stat-val">${total}</div><div class="stat-lbl">Gewertete Tipps</div></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--border);font-size:13px;">
+            <span>🎯 <b style="color:#ccff00">${exact}</b></span>
+            <span>📐 <b style="color:#38bdf8">${diff}</b></span>
+            <span>📈 <b style="color:#fb923c">${tend}</b></span>
+            <span>❌ <b style="color:#ef4444">${miss}</b></span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--border);">
+            <span style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;">Form · letzte 5</span>
+            <span style="display:flex;gap:5px;margin-left:auto;">${formHtml}</span>
+        </div>
+        ${isSelf?`<div style="font-size:11px;color:var(--text-muted);text-align:center;padding-top:8px;border-top:1px solid var(--border);">📝 offen ${openTipped}/${openGames.length} &nbsp;·&nbsp; 🔒 geschlossen ${closedTipped}/${closedGames.length}</div>`:''}`;
+}
+
+// ── 🎯 Ø Punkte/Spiel nach Phase (Gruppe vs. KO) ───────────────────────────────
+function renderPhaseHitrate(data){
+    const el=document.getElementById('stats-phase'); if(!el) return;
+    const me=myToken?data.users.find(u=>u.token===myToken):null;
+    const finKo=data.matches.filter(m=>m.finished&&m.type==='ko');
+    const gIds=new Set(data.matches.filter(m=>m.finished&&m.type!=='ko').map(m=>m.id));
+    const kIds=new Set(finKo.map(m=>m.id));
+    const stat=(uid,ids)=>{
+        const ts=data.tips.filter(t=>t.userId===uid&&t.tipA!=null&&ids.has(t.matchId));
+        const n=ts.length, p=ts.reduce((s,t)=>s+(t.points||0),0);
+        return {n, avg:n?p/n:null};
+    };
+    const rows=data.users.map(u=>({id:u.id,name:u.name,g:stat(u.id,gIds),k:stat(u.id,kIds)}))
+        .filter(r=>r.g.n||r.k.n)
+        .sort((a,b)=>((b.k.avg??-1)-(a.k.avg??-1))||((b.g.avg??-1)-(a.g.avg??-1)));
+    if(!rows.length){el.innerHTML='<p style="color:var(--text-muted);text-align:center;padding:14px;">Noch keine gewerteten Tipps.</p>';return;}
+    const note=finKo.length?'':'<div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">Die KO-Spalte füllt sich ab dem Achtelfinale.</div>';
+    const cell=s=>s.avg==null?'<span style="color:var(--text-muted)">–</span>':`<b style="color:var(--accent-green)">${s.avg.toFixed(2)}</b>`;
+    el.innerHTML=note+`<table>
+        <thead><tr><th style="width:52%">Spieler</th><th style="width:24%">Ø Gruppe</th><th style="width:24%">Ø KO</th></tr></thead>
+        <tbody>${rows.map(r=>`<tr style="${me&&r.id===me.id?'background:rgba(204,255,0,.05)':''}">
+            <td style="font-size:13px;${me&&r.id===me.id?'font-weight:700;color:#ccff00;':''}">${r.name}</td>
+            <td>${cell(r.g)}</td><td>${cell(r.k)}</td></tr>`).join('')}</tbody></table>`;
+}
+
+// ── 🏟️ Hall of Fame & Shame ──────────────────────────────────────────────────
+function renderHallOfFame(data){
+    const el=document.getElementById('stats-hof'); if(!el) return;
+    const me=myToken?data.users.find(u=>u.token===myToken):null;
+    const uname=id=>{const u=data.users.find(x=>x.id===id);return u?u.name:'?';};
+    const fame=[], shame=[];
+    data.matches.filter(m=>m.finished).forEach(m=>{
+        data.tips.filter(t=>t.matchId===m.id&&t.tipA!=null).forEach(t=>{
+            const dist=Math.abs(Number(t.tipA)-Number(m.resultA))+Math.abs(Number(t.tipB)-Number(m.resultB));
+            const e={userId:t.userId,m,tip:`${t.tipA}:${t.tipB}`,dist,goals:Number(m.resultA)+Number(m.resultB),points:t.points||0};
+            if(t.points===3) fame.push(e); else shame.push(e);
+        });
+    });
+    if(!fame.length&&!shame.length){el.innerHTML='<p style="color:var(--text-muted);text-align:center;padding:14px;">Noch keine beendeten Spiele.</p>';return;}
+    fame.sort((a,b)=>b.goals-a.goals||a.dist-b.dist);
+    shame.sort((a,b)=>b.dist-a.dist);
+    const line=(e,fameMode)=>{
+        const mine=me&&e.userId===me.id;
+        const res=`${dn(e.m.teamA)} ${e.m.resultA}:${e.m.resultB} ${dn(e.m.teamB)}`;
+        return `<div style="padding:6px 0;border-bottom:1px solid var(--border);${mine?'background:rgba(204,255,0,.05);border-radius:6px;padding:6px;':''}">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:13px;">
+                <span style="${mine?'font-weight:700;color:#ccff00;':''}">${uname(e.userId)}</span>
+                <span style="text-align:right;white-space:nowrap;">${fameMode?'🎯':'💥'} ${e.tip} <span style="color:var(--text-muted);font-size:11px;">${fameMode?`${e.goals} Tore`:`${e.dist} daneben`}</span></span></div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">${res}</div></div>`;
+    };
+    let html='';
+    if(fame.length) html+=`<div style="font-size:11px;color:#34d399;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">🏆 Hall of Fame · krasseste Volltreffer</div>${fame.slice(0,5).map(e=>line(e,true)).join('')}`;
+    if(shame.length) html+=`<div style="font-size:11px;color:#ef4444;text-transform:uppercase;letter-spacing:.5px;margin:12px 0 4px;">🤡 Hall of Shame · gröbste Ausfälle</div>${shame.slice(0,5).map(e=>line(e,false)).join('')}`;
+    el.innerHTML=html;
+}
+
+// ── ⚽ Tor-Schätzer (Über-/Unterschätzer) ─────────────────────────────────────
+function renderGoalBias(data){
+    const el=document.getElementById('stats-goalbias'); if(!el) return;
+    const me=myToken?data.users.find(u=>u.token===myToken):null;
+    const fin=data.matches.filter(m=>m.finished);
+    const rows=data.users.map(u=>{
+        let n=0,sumTip=0,sumReal=0;
+        fin.forEach(m=>{
+            const t=data.tips.find(x=>x.matchId===m.id&&x.userId===u.id&&x.tipA!=null);
+            if(!t) return;
+            n++; sumTip+=(Number(t.tipA)+Number(t.tipB)); sumReal+=(Number(m.resultA)+Number(m.resultB));
+        });
+        return {id:u.id,name:u.name,n,avgTip:n?sumTip/n:0,avgReal:n?sumReal/n:0,bias:n?(sumTip-sumReal)/n:0};
+    }).filter(r=>r.n>=3);
+    if(!rows.length){el.innerHTML='<p style="color:var(--text-muted);text-align:center;padding:14px;">Erscheint sobald jemand ≥3 beendete Spiele getippt hat.</p>';return;}
+    rows.sort((a,b)=>b.bias-a.bias);
+    const maxAbs=Math.max(...rows.map(r=>Math.abs(r.bias)),0.5);
+    el.innerHTML=`<div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">Ø getippte Tore vs. Ø tatsächliche Tore. Links defensiv, rechts torhungrig.</div>`
+      + rows.map(r=>{
+        const mine=me&&r.id===me.id, pos=r.bias>=0;
+        const w=Math.round(Math.abs(r.bias)/maxAbs*48);
+        const tag=r.bias>0.4?'🌋 Tor-Optimist':r.bias<-0.4?'🛡️ Defensiv':'🎯 Realist';
+        return `<div style="padding:6px 0;border-bottom:1px solid var(--border);${mine?'background:rgba(204,255,0,.05);border-radius:6px;padding:6px;':''}">
+            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px;">
+                <span style="${mine?'font-weight:700;color:#ccff00;':''}">${r.name}</span>
+                <span style="color:var(--text-muted);font-size:11px;">${tag} · ${r.bias>0?'+':''}${r.bias.toFixed(1)}/Spiel</span></div>
+            <div style="display:flex;align-items:center;height:8px;">
+                <div style="flex:1;display:flex;justify-content:flex-end;"><div style="width:${pos?0:w}%;height:8px;background:#38bdf8;border-radius:4px 0 0 4px;"></div></div>
+                <div style="width:1px;height:12px;background:var(--text-muted);"></div>
+                <div style="flex:1;"><div style="width:${pos?w:0}%;height:8px;background:#fb923c;border-radius:0 4px 4px 0;"></div></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);margin-top:2px;">
+                <span>Tipp Ø ${r.avgTip.toFixed(1)}</span><span>Real Ø ${r.avgReal.toFixed(1)}</span></div>
+        </div>`;
+    }).join('');
+}
+
+// ── Stats (Orchestrierung) ────────────────────────────────────────────────────
 function renderStats(data) {
-    const psCard=document.getElementById('personal-stats-card');
-    if(myToken){
-        const me=data.users.find(u=>u.token===myToken);
-        if(me){
-            psCard.style.display='block';
-            const myTips=data.tips.filter(t=>t.userId===me.id);
-            const finishedTips=myTips.filter(t=>{const m=data.matches.find(x=>x.id===t.matchId);return m&&m.finished&&t.tipA!==null;});
-            const total=finishedTips.length,pts=finishedTips.reduce((s,t)=>s+(t.points||0),0);
-            const exact=finishedTips.filter(t=>t.points===3).length,diff=finishedTips.filter(t=>t.points===2).length;
-            const tend=finishedTips.filter(t=>t.points===1).length,miss=finishedTips.filter(t=>t.points===0).length;
-            const hitRate=total>0?Math.round(((exact+diff+tend)/total)*100):0;
-            const avgPts=total>0?(pts/total).toFixed(2):'-';
-            const now=Date.now();
-            const realGames=data.matches.filter(m=>!m.teamA.startsWith('TBA'));
-            const openGames=realGames.filter(m=>!m.finished&&m.kickoff>now);
-            const closedGames=realGames.filter(m=>m.finished||m.kickoff<=now);
-            const _mine=m=>myTips.find(t=>t.matchId===m.id&&t.tipA!==null);
-            const openTipped=openGames.filter(_mine).length;
-            const closedTipped=closedGames.filter(_mine).length;
-            const totalTipped=openTipped+closedTipped;
-            const upcoming=openGames, tippedUp=openTipped;
-            const last5=finishedTips.map(t=>({t,m:data.matches.find(x=>x.id===t.matchId)})).filter(x=>x.m).sort((a,b)=>a.m.kickoff-b.m.kickoff).slice(-5);
-            const formHtml=last5.length?last5.map(x=>{const p=x.t.points||0;const g=p>=1;return `<span title="${dn(x.m.teamA)} ${x.m.resultA}:${x.m.resultB} ${dn(x.m.teamB)} · ${p}P" style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:${g?'#22c55e':'#ef4444'};color:#0d1117;font-weight:800;font-size:12px;">${p}</span>`;}).join(''):'<span style="color:var(--text-muted);font-size:12px;">noch keine</span>';
-            document.getElementById('personal-stats').innerHTML=`
-                <div class="stat-grid">
-                    <div class="stat-box"><div class="stat-val">${totalTipped}/${realGames.length}</div><div class="stat-lbl">Tipps abgegeben</div></div>
-                    <div class="stat-box"><div class="stat-val">${hitRate}%</div><div class="stat-lbl">Trefferquote</div></div>
-                    <div class="stat-box"><div class="stat-val">${avgPts}</div><div class="stat-lbl">Ø Punkte/Spiel</div></div>
-                    <div class="stat-box"><div class="stat-val">${total}</div><div class="stat-lbl">Gewertete Tipps</div></div>
-                </div>
-                <div style="display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--border);font-size:13px;">
-                    <span>🎯 <b style="color:#ccff00">${exact}</b></span>
-                    <span>📐 <b style="color:#38bdf8">${diff}</b></span>
-                    <span>📈 <b style="color:#fb923c">${tend}</b></span>
-                    <span>❌ <b style="color:#ef4444">${miss}</b></span>
-                </div>
-                <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--border);">
-                    <span style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;">Form · letzte 5</span>
-                    <span style="display:flex;gap:5px;margin-left:auto;">${formHtml}</span>
-                </div>
-                <div style="font-size:11px;color:var(--text-muted);text-align:center;padding-top:8px;border-top:1px solid var(--border);">📝 offen ${openTipped}/${openGames.length} &nbsp;·&nbsp; 🔒 geschlossen ${closedTipped}/${closedGames.length}</div>`;
-        }
-    } else { psCard.style.display='none'; }
-	renderMvpNights(data);
+    renderPersonalStatsCard(data);
+    renderMvpNights(data);
     renderMovers(data);
-    renderBoldHits(data);
+    renderPhaseHitrate(data);
     drawRankingsChart(data);
+    renderBoldHits(data);
+    renderHallOfFame(data);
+    renderGoalBias(data);
     renderH2HSelectors(data);
 }
 
@@ -1556,12 +1780,135 @@ function updateH2H() {
 }
 
 
+// ── Stats Subtab Navigation ───────────────────────────────────────────────────
+function switchStatsTab(id, btn) {
+    currentStatsTab = id;
+    document.querySelectorAll('.stats-section').forEach(s => s.style.display = 'none');
+    const sec = document.getElementById(id); if (sec) sec.style.display = 'block';
+    document.querySelectorAll('.stats-nav-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+}
+
 // ── Admin Subtab Navigation ───────────────────────────────────────────────────
 function switchAdminTab(id, btn) {
     document.querySelectorAll('.admin-section').forEach(s => s.style.display = 'none');
     document.getElementById(id).style.display = 'block';
     document.querySelectorAll('.admin-nav-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
+    if (id === 'adm-ko' && !koPreviewData) loadKoPreview();
+}
+
+// ── Admin: KO-Zuordnung ───────────────────────────────────────────────────────
+let koPreviewData = null;
+async function loadKoPreview() {
+    const box = document.getElementById('ko-preview');
+    box.innerHTML = '<div class="card"><span style="color:var(--text-muted);">Berechne…</span></div>';
+    try {
+        const r = await fetch(`/api/admin/ko/preview?adminPass=${encodeURIComponent(urlAdminPass)}`);
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        koPreviewData = await r.json();
+        renderKoPreview(koPreviewData);
+    } catch (e) {
+        box.innerHTML = `<div class="card" style="border-left:4px solid var(--accent);">Fehler: ${e.message}</div>`;
+    }
+}
+function koTeamCell(name) { return name ? `${f(name)} ${dn(name)}` : '<span style="color:var(--text-muted);">—</span>'; }
+function renderKoPreview(d) {
+    const box = document.getElementById('ko-preview');
+    const advancingThirds = new Set(d.thirds.slice(0, 8).map(t => t.group));
+    let html = '';
+    const statusCol = d.complete ? 'var(--accent-green)' : '#fb923c';
+    html += `<div class="card" style="border-left:4px solid ${statusCol};">
+        <b style="color:${statusCol};">${d.complete ? '✓ Gruppenphase abgeschlossen' : '⏳ Gruppenphase läuft noch'}</b>
+        <span style="color:var(--text-muted);font-size:13px;"> · ${d.finishedGroupGames}/${d.totalGroupGames} Spiele</span>`;
+    if (d.ambiguousGroups.length) html += `<div style="color:#fb923c;font-size:12px;margin-top:6px;">⚠️ Nicht eindeutige Platzierung in Gruppe ${d.ambiguousGroups.join(', ')} – bitte unten prüfen/überschreiben.</div>`;
+    if (d.boundaryAmbiguous) html += `<div style="color:#fb923c;font-size:12px;margin-top:6px;">⚠️ Gleichstand an der 8./9.-Dritten-Grenze – Weiterkommen nicht eindeutig.</div>`;
+    if (!d.annexMatched) html += `<div style="color:var(--accent);font-size:12px;margin-top:6px;">Dritten-Zuordnung noch unvollständig (es stehen noch nicht alle 8 Dritten fest).</div>`;
+    html += '</div>';
+    html += '<div class="card"><h3 style="margin-top:0;">📊 Gruppentabellen</h3>';
+    for (const g of Object.keys(d.standings)) {
+        html += `<div style="margin:10px 0 4px;font-weight:700;color:var(--accent-green);">Gruppe ${g}</div><table style="width:100%;font-size:12px;border-collapse:collapse;">`;
+        d.standings[g].forEach(t => {
+            const inThird = t.rank === 3 && advancingThirds.has(g);
+            const mark = t.rank <= 2 ? '✓' : (t.rank === 3 ? (inThird ? '✓' : '✗') : '');
+            const col = (t.rank <= 2 || inThird) ? 'var(--accent-green)' : 'var(--text-muted)';
+            html += `<tr style="border-bottom:1px solid var(--border);${t._amb ? 'background:rgba(251,146,60,.08);' : ''}">
+                <td style="padding:3px 4px;color:${col};width:18px;">${t.rank}</td>
+                <td style="padding:3px 4px;">${f(t.team)} ${dn(t.team)}${t._amb ? ' ⚠️' : ''}</td>
+                <td style="padding:3px 4px;text-align:right;color:var(--text-muted);">${t.GD >= 0 ? '+' : ''}${t.GD}</td>
+                <td style="padding:3px 4px;text-align:right;color:var(--text-muted);">${t.GF}</td>
+                <td style="padding:3px 6px;text-align:right;font-weight:700;">${t.Pts}</td>
+                <td style="padding:3px 4px;text-align:center;color:${col};">${mark}</td></tr>`;
+        });
+        html += '</table>';
+    }
+    html += '</div>';
+    html += '<div class="card"><h3 style="margin-top:0;">🥉 Beste 8 Dritte</h3><table style="width:100%;font-size:12px;border-collapse:collapse;">';
+    d.thirds.forEach((t, i) => {
+        if (i === 8) html += `<tr><td colspan="5" style="padding:4px;text-align:center;color:var(--accent);font-size:11px;">— Grenze: ab hier ausgeschieden —</td></tr>`;
+        html += `<tr style="border-bottom:1px solid var(--border);opacity:${i < 8 ? 1 : .5};">
+            <td style="padding:3px 4px;width:22px;">${t.thirdRank}.</td>
+            <td style="padding:3px 4px;">${f(t.team)} ${dn(t.team)} <span style="color:var(--text-muted);">(Gr.${t.group})</span></td>
+            <td style="padding:3px 4px;text-align:right;color:var(--text-muted);">${t.GD >= 0 ? '+' : ''}${t.GD}</td>
+            <td style="padding:3px 4px;text-align:right;color:var(--text-muted);">${t.GF}T</td>
+            <td style="padding:3px 6px;text-align:right;font-weight:700;">${t.Pts}P</td></tr>`;
+    });
+    html += '</table></div>';
+    html += '<div class="card" style="border-left:4px solid var(--primary);"><h3 style="margin-top:0;">⚽ Sechzehntelfinale – Zuordnung</h3>';
+    html += '<p style="font-size:12px;color:var(--text-muted);margin-top:0;">Vorausgefüllt aus der Berechnung. Bei Bedarf Namen anpassen, dann übernehmen.</p>';
+    d.r32.forEach(m => {
+        html += `<div style="display:flex;gap:6px;align-items:center;margin-bottom:7px;">
+            <span style="font-size:11px;color:var(--text-muted);width:84px;flex-shrink:0;">${m.matchId} · ${m.slotA}/${m.slotB}</span>
+            <input type="text" id="ko-r32a-${m.matchId}" value="${(m.teamA || '').replace(/"/g, '&quot;')}" style="flex:1;font-size:12px;">
+            <span style="color:var(--accent-green);font-weight:900;">vs</span>
+            <input type="text" id="ko-r32b-${m.matchId}" value="${(m.teamB || '').replace(/"/g, '&quot;')}" style="flex:1;font-size:12px;"></div>`;
+    });
+    html += '</div>';
+    if (d.pendingAdvancers && d.pendingAdvancers.length) {
+        html += '<div class="card" style="border-left:4px solid #fb923c;"><h3 style="margin-top:0;">⚖️ Aufsteiger nach Remis (90 Min)</h3>';
+        html += '<p style="font-size:12px;color:var(--text-muted);margin-top:0;">Diese KO-Spiele endeten nach 90 Min unentschieden. Wer kam weiter?</p>';
+        d.pendingAdvancers.forEach(p => {
+            html += `<div style="margin-bottom:8px;font-size:13px;"><div style="color:var(--text-muted);font-size:11px;">${p.matchId}</div>
+                <label style="margin-right:14px;"><input type="radio" name="adv-${p.matchId}" value="${(p.teamA || '').replace(/"/g, '&quot;')}"> ${dn(p.teamA)}</label>
+                <label><input type="radio" name="adv-${p.matchId}" value="${(p.teamB || '').replace(/"/g, '&quot;')}"> ${dn(p.teamB)}</label></div>`;
+        });
+        html += '</div>';
+    }
+    const determined = d.propagation.filter(p => p.teamA || p.teamB);
+    if (determined.length) {
+        html += '<div class="card"><h3 style="margin-top:0;">🔮 Folgepaarungen (automatisch)</h3>';
+        determined.forEach(p => {
+            html += `<div style="font-size:12px;padding:3px 0;border-bottom:1px solid var(--border);"><span style="color:var(--text-muted);">${p.matchId}:</span> ${koTeamCell(p.teamA)} vs ${koTeamCell(p.teamB)}</div>`;
+        });
+        html += '</div>';
+    }
+    const btnStyle = d.complete ? 'width:100%;' : 'width:100%;opacity:.5;';
+    html += `<div class="card" style="border-left:4px solid var(--accent-green);">
+        <button class="btn-primary" style="${btnStyle}" ${d.complete ? '' : 'disabled'} onclick="applyKo(false)">✅ Zuordnung übernehmen</button>`;
+    if (!d.complete) html += `<button class="btn-secondary" style="width:100%;margin-top:8px;" onclick="applyKo(true)">⚠️ Trotzdem übernehmen (Test)</button>`;
+    html += '</div>';
+    box.innerHTML = html;
+}
+async function applyKo(force) {
+    if (!confirm(force ? 'Unvollständige Gruppenphase – wirklich übernehmen?' : 'Zuordnung jetzt in die KO-Spiele schreiben?')) return;
+    const r32 = (koPreviewData.r32 || []).map(m => {
+        const ea = document.getElementById('ko-r32a-' + m.matchId), eb = document.getElementById('ko-r32b-' + m.matchId);
+        return { matchId: m.matchId, teamA: ea ? ea.value.trim() : '', teamB: eb ? eb.value.trim() : '' };
+    });
+    const advancers = {};
+    (koPreviewData.pendingAdvancers || []).forEach(p => {
+        const sel = document.querySelector(`input[name="adv-${p.matchId}"]:checked`);
+        if (sel) advancers[p.matchId] = sel.value;
+    });
+    try {
+        const r = await fetch('/api/admin/ko/apply', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ adminPass: urlAdminPass, r32, advancers, force }) });
+        const res = await r.json();
+        if (!r.ok || res.ok === false) { showToast(res.error || 'Fehler', 'error'); return; }
+        showToast(`✅ ${res.count} Zuordnung(en) gesetzt`, 'success');
+        await refreshData();
+        loadKoPreview();
+    } catch (e) { showToast('Fehler: ' + e.message, 'error'); }
 }
 // ── Admin ─────────────────────────────────────────────────────────────────────
 function renderAdminDashboard(data) {
@@ -2039,6 +2386,26 @@ document.addEventListener('DOMContentLoaded', () => {
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') checkForUpdates();
 });
+
+// ── Service Worker: Registrierung + zuverlässige Updates ──────────────────────
+// Ohne diesen Block wird nie eine neue sw.js geladen – der alte Worker bleibt aktiv.
+if ('serviceWorker' in navigator) {
+    // Übernimmt ein neuer Worker die Kontrolle → Seite einmal neu laden (neue Version sofort aktiv)
+    let _swRefreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (_swRefreshing) return;
+        _swRefreshing = true;
+        location.reload();
+    });
+    window.addEventListener('load', async () => {
+        try {
+            // updateViaCache:'none' → sw.js beim Update-Check immer frisch vom Server (nicht aus HTTP-Cache)
+            const reg = await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
+            reg.update();                                    // sofort nach Update suchen
+            setInterval(() => reg.update(), 60 * 60 * 1000); // danach stündlich
+        } catch (e) { console.warn('SW Fehler:', e); }
+    });
+}
 </script>
 </body>
 </html>

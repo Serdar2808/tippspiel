@@ -27,7 +27,17 @@ try {
 }
 
 app.use(express.json());
-app.use(express.static(__dirname));
+app.use(express.static(__dirname, {
+    setHeaders: (res, filePath) => {
+        // index.html und sw.js NIE cachen – sonst zieht der Browser veraltete App-Versionen
+        // bzw. einen alten Service Worker und Updates kommen nicht an.
+        if (filePath.endsWith('index.html') || filePath.endsWith('sw.js')) {
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
+        }
+    }
+}));
 
 // ── Datenbank Initialisierung ─────────────────────────────────────────────────
 const db = new Database(DB_FILE);
@@ -849,6 +859,10 @@ app.post('/api/einladung/register', (req, res) => {
     
     res.json({ success: true, user: newUser });
 });
+
+// ── WM-2026 KO-Phasen-Engine (Platzierung → Bracket-Zuordnung) ────────────────
+// Stellt /api/admin/ko/preview & /api/admin/ko/apply bereit (Admin-Panel "🏆 KO").
+require('./wm-ko')({ app, db }, { adminPass: 'GEHEIM123' });
 
 // ── WM-2026 Auto-Sync (OpenLigaDB) ───────────────────────────────────────────
 require('./wm-autosync')(
