@@ -616,7 +616,7 @@ const CHART_COLORS=['#ccff00','#38bdf8','#fb923c','#f472b6','#a78bfa','#34d399',
 const REACTION_EMOJIS = ['🎯','😭','🔥','😱','🤩','😤'];
 const TIP_REACTION_EMOJIS = ['😀','😂','🙁','😭','😡','😳','🤑','👍','👏','💪','👎'];
 
-let globalData=null, adminMode=false, urlAdminPass='', myToken='', currentFilter='alle', currentTipState='offen', currentRankingPhase='all', adminTipMatchId='', rankingLive=false, currentGroupTab='A', currentStatsTab='st-ich', statsUserId=null;
+let globalData=null, adminMode=false, urlAdminPass='', myToken='', currentFilter='alle', currentTipState='offen', currentRankingPhase='all', currentGroupMd='all', adminTipMatchId='', rankingLive=false, currentGroupTab='A', currentStatsTab='st-ich', statsUserId=null;
 
 // ── Hilfsfunktionen ─────────────────────────────────────────────────────────
 // Anzeigename: Bosnien und Herzegowina → Bosnien
@@ -1297,18 +1297,43 @@ const PHASES = [
 ];
 
 function renderRankings(data) {
+    // Gruppen-Spieltage (1./2./3.) aus der Anstoß-Reihenfolge je Gruppe ableiten:
+    // 6 Spiele pro Gruppe, nach Anstoß sortiert → je 2 Spiele = ein Spieltag.
+    const mdIds = {1:new Set(),2:new Set(),3:new Set()};
+    const byGroup = {};
+    data.matches.filter(m=>m.type==='group').forEach(m=>{ (byGroup[m.group]=byGroup[m.group]||[]).push(m); });
+    Object.values(byGroup).forEach(arr=>{
+        arr.sort((a,b)=>a.kickoff-b.kickoff);
+        arr.forEach((m,i)=>{ const d=Math.floor(i/2)+1; if(mdIds[d]) mdIds[d].add(m.id); });
+    });
+    const inGroupPhase = currentRankingPhase==='group';
+    const mdActive = inGroupPhase && currentGroupMd!=='all' && mdIds[currentGroupMd];
+
     const phaseBar = `<div style="display:flex;gap:6px;overflow-x:auto;padding:0 12px 10px;scrollbar-width:none;">
         ${PHASES.map(p=>{
             const hasData = p.id==='all' || data.matches.some(m=>m.finished&&p.fn(m));
             return `<button class="phase-btn${currentRankingPhase===p.id?' active':''}"
-                onclick="currentRankingPhase='${p.id}';renderRankings(globalData)"
+                onclick="currentRankingPhase='${p.id}';currentGroupMd='all';renderRankings(globalData)"
                 ${!hasData?'disabled style="opacity:.35;cursor:default"':''}>${p.label}</button>`;
         }).join('')}
     </div>`;
+
+    // Spieltag-Unterauswahl – nur in der Gruppen-Phase sichtbar.
+    const mdBar = inGroupPhase ? `<div style="display:flex;gap:6px;overflow-x:auto;padding:0 12px 10px;scrollbar-width:none;">
+        ${[['all','Alle'],['1','1. Spieltag'],['2','2. Spieltag'],['3','3. Spieltag']].map(([id,label])=>{
+            const hasData = id==='all' || [...(mdIds[id]||[])].some(mid=>data.matches.find(m=>m.id===mid&&m.finished));
+            return `<button class="phase-btn${String(currentGroupMd)===id?' active':''}"
+                onclick="currentGroupMd='${id}';renderRankings(globalData)"
+                ${!hasData?'disabled style="opacity:.35;cursor:default"':''}>${label}</button>`;
+        }).join('')}
+    </div>` : '';
+
+    // Effektive Match-Menge: ggf. auf den gewählten Gruppen-Spieltag einschränken
     const phase = PHASES.find(p=>p.id===currentRankingPhase)||PHASES[0];
-    const phaseMatchIds = new Set(data.matches.filter(m=>phase.fn(m)).map(m=>m.id));
+    let phaseMatchIds = new Set(data.matches.filter(m=>phase.fn(m)).map(m=>m.id));
+    if(mdActive){ phaseMatchIds = new Set([...phaseMatchIds].filter(id=>mdIds[currentGroupMd].has(id))); }
     const matchById = Object.fromEntries(data.matches.map(m=>[m.id,m]));
-    const liveIds = new Set(data.matches.filter(m=>!m.finished&&m.liveA!=null&&phase.fn(m)).map(m=>m.id));
+    const liveIds = new Set(data.matches.filter(m=>!m.finished&&m.liveA!=null&&phaseMatchIds.has(m.id)).map(m=>m.id));
     const hasLive = liveIds.size>0;
     if(!hasLive) rankingLive=false; // Toggle nur sinnvoll solange ein Spiel live ist
 
@@ -1388,7 +1413,7 @@ function renderRankings(data) {
                     <span style="flex-shrink:0;margin-left:2px;"><b style="color:var(--accent-green);font-size:20px;">${u.pPts}</b></span>
                 </div>${badgeHtml}</div>`;
         }).join('');
-    document.getElementById('rankings-list').innerHTML = phaseBar + liveToggle + cards;
+    document.getElementById('rankings-list').innerHTML = phaseBar + mdBar + liveToggle + cards;
 }
 
 // ── Gruppen ───────────────────────────────────────────────────────────────────
@@ -1836,17 +1861,26 @@ function renderGoalBias(data){
     }).join('');
 }
 
-// ── Stats (Orchestrierung) ────────────────────────────────────────────────────
-// ── Turnierbaum (kompletter Baum, horizontal scrollbar) ───────────────────────
-const BR_FULL = {
-    R32:['m74','m77','m73','m75','m83','m84','m81','m82','m76','m78','m79','m80','m86','m88','m85','m87'],
-    R16:['m89','m90','m93','m94','m91','m92','m95','m96'],
-    QF :['m97','m98','m99','m100'],
-    SF :['m101','m102'],
-    FIN:['m104'],
+// ── Turnierbaum (links/rechts gespiegelt mit mathematisch exakter Zentrierung) ──
+const BR_SIDES = {
+    left:  { R32:['m74','m77','m73','m75','m83','m84','m81','m82'], R16:['m89','m90','m93','m94'], QF:['m97','m98'],  SF:['m101'] },
+    right: { R32:['m76','m78','m79','m80','m86','m88','m85','m87'], R16:['m91','m92','m95','m96'], QF:['m99','m100'], SF:['m102'] },
 };
-const BR_COLS=[['Sechzehntel','R32'],['Achtel','R16'],['Viertel','QF'],['Halbfinale','SF'],['Finale','FIN']];
+
+const BR_LAYOUT = [
+    ['Sechzehntel', BR_SIDES.left.R32, 0],
+    ['Achtel',      BR_SIDES.left.R16, 1],
+    ['Viertel',     BR_SIDES.left.QF,  2],
+    ['Halbfinale',  BR_SIDES.left.SF,  3],
+    ['Finale',      ['m104', 'm103'],  4], // Finale & Platz 3 vereint in der Mitte
+    ['Halbfinale',  BR_SIDES.right.SF, 3],
+    ['Viertel',     BR_SIDES.right.QF, 2],
+    ['Achtel',      BR_SIDES.right.R16, 1],
+    ['Sechzehntel', BR_SIDES.right.R32, 0],
+];
+
 function brFmt(ms){ return new Date(ms).toLocaleString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Berlin'}); }
+
 function koCard(m){
     if(!m) return '<div class="ko-card"><div class="ko-row"><span class="ko-team ko-tba">offen</span></div><div class="ko-row"><span class="ko-team ko-tba">offen</span></div></div>';
     const tbaA = !m.teamA || m.teamA.startsWith('TBA');
@@ -1867,18 +1901,61 @@ function koCard(m){
         ${row(m.teamB,tbaB,sB,winB,winA)}
         <div class="ko-meta${live?' live':''}">${meta}</div></div>`;
 }
+
 function renderBracket(data){
     const host=document.getElementById('tab-bracket'); if(!host||!data) return;
     const ko={}; data.matches.filter(m=>m.type==='ko').forEach(m=>ko[m.id]=m);
-    const colHeight = BR_FULL.R32.length * 64;
-    const cols = BR_COLS.map(([label,key])=>
-        `<div class="br-col"><div class="br-col-head">${label}</div><div class="br-col-body">${BR_FULL[key].map(id=>koCard(ko[id])).join('')}</div></div>`
-    ).join('');
-    host.innerHTML=`<h2 class="page-title">🌳 Turnierbaum</h2>
-        <p style="color:var(--text-muted);font-size:11px;padding:0 12px 6px;">← → wischen für die ganze Runde</p>
-        <div class="br-scroll"><div class="br-cols" style="height:${colHeight}px">${cols}</div></div>
-        <div class="br-final-wrap"><div class="br-col-head" style="text-align:left;margin-bottom:6px;">🥉 Spiel um Platz 3</div>${koCard(ko['m103'])}</div>`;
+    
+    const slotHeightR32 = 85; // Basis-Höhe für einen Slot der 1. Runde (Sechzehntelfinale)
+    const totalHeight = 8 * slotHeightR32; // Gesamthöhe des Körpers = 680px
+    
+    const cols = BR_LAYOUT.map(([label,ids,level])=> {
+        const isCenter = (level === 4);
+        let bodyContent = '';
+        
+        if (isCenter) {
+            // Finale und Spiel um Platz 3 kompakt zusammen im Zentrum zentriert
+            bodyContent = `
+                <div style="display:flex; flex-direction:column; justify-content:center; gap:24px; height:100%;">
+                    <div class="ko-final-box">
+                        <div style="font-size:10px; text-align:center; color:var(--accent-green); font-weight:bold; margin-bottom:5px; letter-spacing:0.05em;">🏆 FINALE</div>
+                        ${koCard(ko[ids[0]])}
+                    </div>
+                    <div class="ko-third-box">
+                        <div style="font-size:10px; text-align:center; color:var(--text-muted); font-weight:bold; margin-bottom:5px; letter-spacing:0.05em;">🥉 SPIEL UM PLATZ 3</div>
+                        ${koCard(ko[ids[1]])}
+                    </div>
+                </div>`;
+        } else {
+            // Jede Spalte verdoppelt die Box-Höhe der Vorrunde -> Garantiert perfekte mathematische Zentrierung
+            const currentSlotHeight = slotHeightR32 * Math.pow(2, level);
+            bodyContent = ids.map(id => `
+                <div style="height:${currentSlotHeight}px; display:flex; flex-direction:column; justify-content:center;">
+                    ${koCard(ko[id])}
+                </div>
+            `).join('');
+        }
+        
+        const centerClass = isCenter ? ' br-col-final' : '';
+        return `<div class="br-col${centerClass}"><div class="br-col-head">${isCenter ? '🏆 Endrunde' : label}</div><div class="br-col-body" style="justify-content:unset; height:${totalHeight}px;">${bodyContent}</div></div>`;
+    }).join('');
+    
+    const prev=host.querySelector('.br-scroll'); const prevLeft=prev?prev.scrollLeft:null;
+    host.innerHTML=`
+        <style>
+            .br-col-final .br-col-head { color: var(--accent-green); }
+            .ko-final-box .ko-card { border-color: var(--accent-green); box-shadow: 0 0 0 1px var(--accent-green); }
+        </style>
+        <h2 class="page-title">🌳 Turnierbaum</h2>
+            <p style="color:var(--text-muted);font-size:11px;padding:0 12px 6px;">← → wischen · Finale &amp; Platz 3 im Zentrum</p>
+            <div class="br-scroll"><div class="br-cols" style="height:auto;">${cols}</div></div>`;
+        
+    const sc=host.querySelector('.br-scroll');
+    if(sc){ sc.scrollLeft = (prevLeft!=null) ? prevLeft : Math.max(0,(sc.scrollWidth-sc.clientWidth)/2); }
 }
+
+
+// ── Stats (Orchestrierung) ────────────────────────────────────────────────────
 
 function renderStats(data) {
     renderPersonalStatsCard(data);
