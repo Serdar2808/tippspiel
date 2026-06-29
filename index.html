@@ -238,7 +238,19 @@
         .dino-shell { position:relative;display:flex;flex-direction:column;align-items:center;
             gap:10px;padding:6px 12px 4px; }
         #dino-board { background:#060a10;border:1px solid var(--border);border-radius:10px;
-            touch-action:none;display:block;max-width:100%;cursor:pointer; }
+            touch-action:none;display:block;max-width:100%; }
+        .touch-pad { position:relative;height:52px;background:var(--card-bg);
+            border:1px solid var(--border);border-radius:10px;touch-action:none;max-width:100%;
+            display:flex;align-items:center;justify-content:center;overflow:hidden; }
+        .touch-pad-label { font-size:12px;color:var(--text-muted);pointer-events:none;
+            letter-spacing:.12em;font-weight:600; }
+        .touch-knob { position:absolute;top:6px;left:0;width:46px;height:40px;border-radius:8px;
+            background:rgba(204,255,0,.18);border:1px solid var(--accent-green);
+            pointer-events:none;will-change:transform; }
+        .jump-btn { width:100%;max-width:520px;height:62px;background:var(--btn-green);color:#fff;
+            border:none;border-radius:12px;font-size:18px;font-weight:800;cursor:pointer;
+            font-family:inherit;touch-action:none;user-select:none;-webkit-user-select:none; }
+        .jump-btn:active { background:#15803d; }
         .games-nav { display:flex;gap:8px;justify-content:center;flex-wrap:wrap;
             margin:4px 12px 10px;padding-bottom:2px; }
         .games-nav-btn { height:34px;padding:0 16px;background:var(--card-bg);color:var(--text-muted);
@@ -471,6 +483,10 @@
                 <div class="cpu"><span class="lbl">Computer</span><span class="num" id="pong-cpu">0</span></div>
             </div>
             <canvas id="pong-board"></canvas>
+            <div id="pong-pad" class="touch-pad">
+                <div id="pong-knob" class="touch-knob"></div>
+                <span class="touch-pad-label">◀ runter · wischen · hoch ▶</span>
+            </div>
             <div class="pong-controls">
                 <select id="pong-diff">
                     <option value="easy">Leicht</option>
@@ -480,7 +496,7 @@
                 <button id="pong-pause">Pause</button>
                 <button id="pong-reset">Neu</button>
             </div>
-            <div class="pong-hint">Finger oder Maus zum Steuern · 11 Punkte gewinnen</div>
+            <div class="pong-hint">Unten wischen zum Steuern · 11 Punkte gewinnen</div>
             <div id="pong-overlay" class="game-overlay">
                 <div class="game-panel">
                     <h3 id="pong-ptitle">Pong</h3>
@@ -494,10 +510,11 @@
     <div id="game-dino" class="game-section" style="display:none;">
         <div class="dino-shell">
             <canvas id="dino-board"></canvas>
+            <button id="dino-jump" class="jump-btn">⬆️ Springen</button>
             <div class="pong-controls">
                 <button id="dino-restart">Neu starten</button>
             </div>
-            <div class="pong-hint">Tippen / Leertaste / ↑ = Springen</div>
+            <div class="pong-hint">Großer Button oder Leertaste = Springen</div>
             <div id="dino-overlay" class="game-overlay">
                 <div class="game-panel">
                     <h3 id="dino-ptitle">🦖 Dino Run</h3>
@@ -2629,7 +2646,9 @@ const PONG = (function () {
     };
 
     let canvas, ctx, diffSel, pauseBtn, resetBtn, overlay, pTitle, pText, startBtn;
-    let youEl, cpuEl;
+    let youEl, cpuEl, pad, knob;
+    const KNOB_W = 46;
+    let padWidth = 0;
     let scale = 1, rafId = null, active = false, inited = false;
     let keyUp = false, keyDown = false;
 
@@ -2667,10 +2686,19 @@ const PONG = (function () {
         cpuEl.textContent = state.cpu;
     }
 
-    function setYouFromClientY(clientY) {
-        const rect = canvas.getBoundingClientRect();
-        const logical = (clientY - rect.top) / scale - PADDLE_H / 2;
-        state.youY = Math.max(0, Math.min(H - PADDLE_H, logical));
+    function setYouFromPadX(clientX) {
+        const rect = pad.getBoundingClientRect();
+        let frac = (clientX - rect.left) / rect.width;       // 0 = links, 1 = rechts
+        frac = Math.max(0, Math.min(1, frac));
+        state.youY = (1 - frac) * (H - PADDLE_H);            // rechts = oben, links = unten
+        updateKnob();
+    }
+
+    function updateKnob() {
+        if (!knob) return;
+        const frac = 1 - state.youY / (H - PADDLE_H);        // oben(youY=0) -> rechts
+        const travel = Math.max(0, padWidth - KNOB_W);
+        knob.style.transform = 'translateX(' + (frac * travel) + 'px)';
     }
 
     function bounce(b, paddleY, dir) {
@@ -2704,8 +2732,8 @@ const PONG = (function () {
         const cfg = DIFF[diffSel.value];
         const b = state.ball;
 
-        if (keyUp) state.youY = Math.max(0, state.youY - 7);
-        if (keyDown) state.youY = Math.min(H - PADDLE_H, state.youY + 7);
+        if (keyUp) { state.youY = Math.max(0, state.youY - 7); updateKnob(); }
+        if (keyDown) { state.youY = Math.min(H - PADDLE_H, state.youY + 7); updateKnob(); }
 
         if (b.vx > 0) {
             if (Math.random() < cfg.react) {
@@ -2779,6 +2807,8 @@ const PONG = (function () {
         scale = cw / W;
         canvas.width = Math.round(cw);
         canvas.height = Math.round(ch);
+        if (pad) { pad.style.width = Math.round(cw) + 'px'; padWidth = Math.round(cw); }
+        updateKnob();
         if (active) draw();
     }
 
@@ -2807,16 +2837,22 @@ const PONG = (function () {
         startBtn = document.getElementById('pong-start');
         youEl = document.getElementById('pong-you');
         cpuEl = document.getElementById('pong-cpu');
+        pad = document.getElementById('pong-pad');
+        knob = document.getElementById('pong-knob');
 
-        canvas.addEventListener('mousemove', e => { if (state.running) setYouFromClientY(e.clientY); });
-        canvas.addEventListener('touchstart', e => {
+        // Steuerung über die Wischleiste unter dem Feld (Feld bleibt frei)
+        let dragging = false;
+        pad.addEventListener('touchstart', e => {
             e.preventDefault();
-            if (state.running) setYouFromClientY(e.touches[0].clientY);
+            if (state.running) setYouFromPadX(e.touches[0].clientX);
         }, { passive: false });
-        canvas.addEventListener('touchmove', e => {
+        pad.addEventListener('touchmove', e => {
             e.preventDefault();
-            if (state.running) setYouFromClientY(e.touches[0].clientY);
+            if (state.running) setYouFromPadX(e.touches[0].clientX);
         }, { passive: false });
+        pad.addEventListener('mousedown', e => { dragging = true; if (state.running) setYouFromPadX(e.clientX); });
+        window.addEventListener('mousemove', e => { if (dragging && state.running) setYouFromPadX(e.clientX); });
+        window.addEventListener('mouseup', () => { dragging = false; });
 
         window.addEventListener('keydown', e => {
             if (!active) return;
@@ -2874,7 +2910,7 @@ const DINO = (function () {
     const DINO_W = 30, DINO_H = 44;
     const GRAV = 0.7, JUMP_V = -11.4;
 
-    let canvas, ctx, restartBtn, overlay, pTitle, pText, startBtn, hiNote;
+    let canvas, ctx, restartBtn, jumpBtn, overlay, pTitle, pText, startBtn, hiNote;
     let scale = 1, rafId = null, active = false, inited = false;
 
     const state = {
@@ -3048,6 +3084,7 @@ const DINO = (function () {
         canvas = document.getElementById('dino-board');
         ctx = canvas.getContext('2d');
         restartBtn = document.getElementById('dino-restart');
+        jumpBtn = document.getElementById('dino-jump');
         overlay = document.getElementById('dino-overlay');
         pTitle = document.getElementById('dino-ptitle');
         pText = document.getElementById('dino-ptext');
@@ -3055,8 +3092,9 @@ const DINO = (function () {
 
         state.hi = loadHi();
 
-        canvas.addEventListener('mousedown', e => { e.preventDefault(); jump(); });
-        canvas.addEventListener('touchstart', e => { e.preventDefault(); jump(); }, { passive: false });
+        // Springen nur über den großen Button (Feld bleibt frei) oder Tastatur
+        jumpBtn.addEventListener('touchstart', e => { e.preventDefault(); jump(); }, { passive: false });
+        jumpBtn.addEventListener('mousedown', e => { e.preventDefault(); jump(); });
         window.addEventListener('keydown', e => {
             if (!active) return;
             if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w') { e.preventDefault(); jump(); }
