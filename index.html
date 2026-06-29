@@ -79,6 +79,31 @@
         .bottom-nav button { flex:1;color:#7c5fa0;background:none;border:none;font-size:12px;cursor:pointer;border-radius:0;
             height:65px;padding:0 2px;line-height:1.4; }
         .bottom-nav button.active { color:white;border-top:3px solid var(--accent-green);font-weight:bold; }
+        /* Turnierbaum */
+        .br-toggle{display:flex;gap:6px;padding:0 12px 10px;}
+        .br-toggle button{flex:1;padding:8px;border:1px solid var(--border);background:var(--card-bg);color:var(--text-muted);border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;}
+        .br-toggle button.active{background:var(--accent-green);color:#06210a;border-color:var(--accent-green);}
+        .br-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;padding:4px 12px 16px;}
+        .br-cols{display:flex;gap:14px;min-width:max-content;}
+        .br-col{display:flex;flex-direction:column;min-width:150px;}
+        .br-col-head{font-size:10px;color:var(--text-muted);text-align:center;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
+        .br-col-body{flex:1;display:flex;flex-direction:column;justify-content:space-around;}
+        .ko-card{background:var(--card-bg);border:1px solid var(--border);border-radius:10px;padding:6px 8px;}
+        .ko-card.live{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);}
+        .ko-row{display:flex;justify-content:space-between;align-items:center;gap:6px;padding:2px 0;font-size:12px;}
+        .ko-row.win .ko-team{font-weight:800;color:var(--text);}
+        .ko-row.lose{opacity:.45;}
+        .ko-team{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text);}
+        .ko-score{font-weight:800;min-width:14px;text-align:right;color:var(--text);}
+        .ko-tba{color:var(--text-muted);font-style:italic;}
+        .ko-meta{font-size:9.5px;color:var(--text-muted);text-align:center;margin-top:4px;border-top:1px solid var(--border);padding-top:3px;}
+        .ko-meta.live{color:var(--accent);font-weight:700;}
+        .br-final-wrap{margin:8px 12px 24px;}
+        .br-round-chips{display:flex;gap:6px;overflow-x:auto;padding:0 12px 12px;scrollbar-width:none;}
+        .br-round-chips button{flex:0 0 auto;padding:7px 13px;border:1px solid var(--border);background:var(--card-bg);color:var(--text-muted);border-radius:20px;font-size:12px;font-weight:600;white-space:nowrap;cursor:pointer;}
+        .br-round-chips button.active{background:var(--accent-green);color:#06210a;border-color:var(--accent-green);}
+        .br-list{display:flex;flex-direction:column;gap:10px;padding:0 12px 24px;}
+        .br-list .ko-row{font-size:13.5px;}
         #modal-overlay { display:none;position:fixed;top:0;left:0;width:100%;height:100%;
             background:rgba(0,0,0,.8);z-index:1000;align-items:center;justify-content:center;backdrop-filter:blur(4px); }
         #modal-box { background:var(--card-bg);width:88%;max-width:420px;max-height:80%;border-radius:14px;
@@ -389,6 +414,8 @@
     </div>
 </div>
 
+<div id="tab-bracket" class="tab-content"></div>
+
 <!-- ADMIN TAB -->
 <div id="tab-admin" class="tab-content">
     <h2 class="page-title">⚙️ Admin</h2>
@@ -466,6 +493,7 @@
 <nav class="bottom-nav" id="bottom-nav">
     <button onclick="switchTab('tab-matches')" id="btn-matches" class="active">⚽<br>Spiele</button>
     <button onclick="switchTab('tab-groups')" id="btn-groups">📊<br>Gruppen</button>
+    <button onclick="switchTab('tab-bracket')" id="btn-bracket">🌳<br>Baum</button>
     <button onclick="switchTab('tab-rankings')" id="btn-rankings">🏆<br>Rangliste</button>
     <button onclick="switchTab('tab-stats')" id="btn-stats">📈<br>Stats</button>
 </nav>
@@ -572,7 +600,7 @@ function computeAchievements(data, userId) {
     }
     // ⚡ Vorausdenker: alle offenen Spiele getippt
     const now=Date.now();
-    const open=data.matches.filter(m=>!m.finished&&m.kickoff>now&&!m.teamA.startsWith('TBA'));
+    const open=data.matches.filter(m=>!m.finished&&m.kickoff>now&&(!m.teamA.startsWith('TBA')&&!m.teamB.startsWith('TBA')));
     if(open.length>0&&open.every(m=>data.tips.find(t=>t.matchId===m.id&&t.userId===userId&&t.tipA!==null)))
         badges.push({icon:'⚡',label:'Vorausdenker',desc:'Alle offenen Spiele getippt'});
     // 🏆 KO-Spezialist: ≥60% der KO-Spiele richtig
@@ -674,7 +702,7 @@ function renderUrgencyBanner(data) {
     if(!me){banner.style.display='none';return;}
     const now=Date.now();
     const urgent=data.matches.filter(m=>{
-        if(m.finished||m.kickoff<now||m.kickoff>now+7200000||m.teamA.startsWith('TBA')) return false;
+        if(m.finished||m.kickoff<now||m.kickoff>now+7200000||m.teamA.startsWith('TBA')||m.teamB.startsWith('TBA')) return false;
         return !data.tips.find(t=>t.matchId===m.id&&t.userId===me.id&&t.tipA!==null);
     });
     if(!urgent.length){banner.style.display='none';return;}
@@ -689,7 +717,7 @@ function renderTipProgress(data) {
     const me=data.users.find(u=>u.token===myToken);
     if(!me){el.innerHTML='';return;}
     const now=Date.now();
-    const upcoming=data.matches.filter(m=>!m.finished&&m.kickoff>now&&!m.teamA.startsWith('TBA'));
+    const upcoming=data.matches.filter(m=>!m.finished&&m.kickoff>now&&(!m.teamA.startsWith('TBA')&&!m.teamB.startsWith('TBA')));
     const tipped=upcoming.filter(m=>data.tips.find(t=>t.matchId===m.id&&t.userId===me.id&&t.tipA!==null)).length;
     const total=upcoming.length,pct=total>0?Math.round((tipped/total)*100):100;
     const col=pct===100?'var(--accent-green)':pct<50?'var(--accent)':'#fb923c';
@@ -816,7 +844,7 @@ function renderQuickTip(data) {
     const me=data.users.find(u=>u.token===myToken);
     if(!me) return;
     const now=Date.now();
-    const open=data.matches.filter(m=>!m.finished&&m.kickoff>now&&!m.teamA.startsWith('TBA')).sort((a,b)=>a.kickoff-b.kickoff);
+    const open=data.matches.filter(m=>!m.finished&&m.kickoff>now&&(!m.teamA.startsWith('TBA')&&!m.teamB.startsWith('TBA'))).sort((a,b)=>a.kickoff-b.kickoff);
     if(!open.length){
         document.getElementById('quicktip-content').innerHTML='<p style="color:var(--text-muted);text-align:center;padding:40px;">Keine offenen Spiele.</p>';
         return;
@@ -857,7 +885,7 @@ async function saveAllTips() {
     const me=globalData?.users.find(u=>u.token===myToken);
     if(!me) return;
     const now=Date.now();
-    const open=globalData.matches.filter(m=>!m.finished&&m.kickoff>now&&!m.teamA.startsWith('TBA'));
+    const open=globalData.matches.filter(m=>!m.finished&&m.kickoff>now&&(!m.teamA.startsWith('TBA')&&!m.teamB.startsWith('TBA')));
     let saved=0, skipped=0, errors=0;
     for(const m of open) {
         const elA=document.getElementById('qt-A-'+m.id);
@@ -1083,7 +1111,10 @@ function renderMatches(data) {
     const _nightIds=currentNightIds(data);
     document.getElementById('matches-list').innerHTML=matches.map(m=>{
         const tip=me?data.tips.find(t=>t.matchId===m.id&&t.userId===me.id):null;
-        const isTBA = m.type==='ko' && (m.teamA.startsWith('TBA')||m.teamB.startsWith('TBA'));
+        const tbaA = m.type==='ko' && String(m.teamA).startsWith('TBA');
+        const tbaB = m.type==='ko' && String(m.teamB).startsWith('TBA');
+        const bothTBA = tbaA && tbaB;
+        const isTBA = tbaA || tbaB;
         const _inWin = m.kickoff<=now && now<=m.kickoff+150*60000;   // 2,5h ab Anpfiff
         const isLive = !m.finished && !isTBA && _inWin;
         const isFreshDone = m.finished && _inWin;                    // gerade beendet, noch im Fenster
@@ -1118,7 +1149,7 @@ function renderMatches(data) {
                 <span>${isSoon?'<span class="soon-dot"></span>':''}${new Date(m.kickoff).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})} Uhr ${m.type==='ko'?'· '+m.group:'· Gr.'+m.group}${m.finished?' <span style="color:var(--accent-green);font-weight:700">✓</span>':''}</span>
                 ${isLive?'<span class="live-badge">🔴 Live</span>':isFreshDone?'<span class="done-badge">🏁 Gerade beendet</span>':(!isLocked&&cd?`<span class="countdown-timer" data-kickoff="${m.kickoff}" style="color:#fb923c;font-weight:700;font-size:12px;">${cd}</span>`:'')}
             </div>
-            <strong style="font-size:1.05rem;display:block;text-align:center;margin:6px 0;">${isTBA?'⏳ Teams noch nicht bekannt':`${f(m.teamA)} ${dn(m.teamA)} vs ${dn(m.teamB)} ${f(m.teamB)}`}</strong>
+            <strong style="font-size:1.05rem;display:block;text-align:center;margin:6px 0;">${bothTBA?'⏳ Teams noch nicht bekannt':`${tbaA?'<span style="color:var(--text-muted);font-style:italic;">offen</span>':`${f(m.teamA)} ${dn(m.teamA)}`} vs ${tbaB?'<span style="color:var(--text-muted);font-style:italic;">offen</span>':`${dn(m.teamB)} ${f(m.teamB)}`}`}</strong>
             ${resultHtml}${liveHtml}${predHtml}
             <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;">
                 ${isTBA?'<div style="color:var(--text-muted);font-size:12px;font-style:italic;">Tipp wird freigeschaltet sobald Teams feststehen</div>':me?`<div>
@@ -1304,7 +1335,35 @@ function renderGroups(matches) {
             <span style="flex-shrink:0;">${right}</span></div>`;
     }).join(''):'<p style="color:var(--text-muted);font-size:13px;">Keine Spiele.</p>'}</div>`;
 
-    document.getElementById('groups-list').innerHTML = tabBar + tableHtml + matchHtml;
+    // ── Beste Gruppendritte (gruppenübergreifend) ──────────────────────────────
+    function standOf(group){
+        const tt={}; (wmGroups[group]||[]).forEach(t=>tt[t]={sp:0,t:0,g:0,p:0});
+        matches.filter(m=>m.group===group&&m.finished).forEach(m=>{
+            const a=norm(m.teamA),b=norm(m.teamB); if(!tt[a]||!tt[b])return;
+            tt[a].sp++;tt[b].sp++; tt[a].t+=m.resultA;tt[a].g+=m.resultB; tt[b].t+=m.resultB;tt[b].g+=m.resultA;
+            if(m.resultA>m.resultB)tt[a].p+=3; else if(m.resultA<m.resultB)tt[b].p+=3; else {tt[a].p++;tt[b].p++;}
+        });
+        return Object.keys(tt).map(n=>({name:n,...tt[n]})).sort((a,b)=>b.p-a.p||(b.t-b.g)-(a.t-a.g)||b.t-a.t);
+    }
+    const thirds = Object.keys(wmGroups).map(gr=>{ const st=standOf(gr); const th=st[2]||{name:'?',sp:0,t:0,g:0,p:0}; return {group:gr,...th,gd:th.t-th.g}; })
+        .sort((a,b)=>b.p-a.p||b.gd-a.gd||b.t-a.t);
+    const thirdRows = thirds.map((r,i)=>{
+        const q=i<8, gd=r.gd;
+        const sep = i===8 ? 'border-top:2px dashed var(--accent);' : '';
+        const gdCol = gd>0?'var(--accent-green)':gd<0?'var(--accent)':'var(--text-muted)';
+        return `<tr style="${sep}">
+            <td style="${q?'color:var(--accent-green);font-weight:800':'color:var(--text-muted)'}">${i+1}</td>
+            <td style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${q?'border-left:3px solid var(--accent-green);padding-left:4px;':''}">${f(r.name)} ${r.name} <span style="color:var(--text-muted);font-size:11px">(${r.group})</span></td>
+            <td><b style="color:var(--accent-green);font-size:15px">${r.p}</b></td>
+            <td style="color:${gdCol};font-weight:700">${gd>0?'+':''}${gd}</td>
+            <td style="color:var(--text-muted)">${r.t}</td></tr>`;
+    }).join('');
+    const thirdsHtml = `<div class="card"><h3>🥉 Beste Gruppendritte</h3>
+        <p style="color:var(--text-muted);font-size:11px;margin:-4px 0 8px;">Top 8 ziehen ins Sechzehntelfinale ein (vorläufig) · Pkt = Punkte · Diff = Differenz · Tore = erzielte Tore</p>
+        <table><thead><tr><th style="width:10%">#</th><th style="width:45%">Team</th><th style="width:15%">Pkt</th><th style="width:15%">Diff</th><th style="width:15%">Tore</th></tr></thead>
+        <tbody>${thirdRows}</tbody></table></div>`;
+
+    document.getElementById('groups-list').innerHTML = thirdsHtml + tabBar + tableHtml + matchHtml;
 }
 function switchGroupTab(g){ currentGroupTab=g; if(globalData) renderGroups(globalData.matches); }
 
@@ -1536,7 +1595,7 @@ function renderPersonalStats(data, userId, isSelf){
     const hitRate=total>0?Math.round(((exact+diff+tend)/total)*100):0;
     const avgPts=total>0?(pts/total).toFixed(2):'-';
     const now=Date.now();
-    const realGames=data.matches.filter(m=>!m.teamA.startsWith('TBA'));
+    const realGames=data.matches.filter(m=>(!m.teamA.startsWith('TBA')&&!m.teamB.startsWith('TBA')));
     const openGames=realGames.filter(m=>!m.finished&&m.kickoff>now);
     const closedGames=realGames.filter(m=>m.finished||m.kickoff<=now);
     const _mine=m=>myTips.find(t=>t.matchId===m.id&&t.tipA!==null);
@@ -1668,7 +1727,101 @@ function renderGoalBias(data){
     }).join('');
 }
 
+// ── Turnierbaum (links/rechts gespiegelt mit mathematisch exakter Zentrierung) ──
+const BR_SIDES = {
+    left:  { R32:['m74','m77','m73','m75','m83','m84','m81','m82'], R16:['m89','m90','m93','m94'], QF:['m97','m98'],  SF:['m101'] },
+    right: { R32:['m76','m78','m79','m80','m86','m88','m85','m87'], R16:['m91','m92','m95','m96'], QF:['m99','m100'], SF:['m102'] },
+};
+
+const BR_LAYOUT = [
+    ['Sechzehntel', BR_SIDES.left.R32, 0],
+    ['Achtel',      BR_SIDES.left.R16, 1],
+    ['Viertel',     BR_SIDES.left.QF,  2],
+    ['Halbfinale',  BR_SIDES.left.SF,  3],
+    ['Finale',      ['m104', 'm103'],  4], // Finale & Platz 3 vereint in der Mitte
+    ['Halbfinale',  BR_SIDES.right.SF, 3],
+    ['Viertel',     BR_SIDES.right.QF, 2],
+    ['Achtel',      BR_SIDES.right.R16, 1],
+    ['Sechzehntel', BR_SIDES.right.R32, 0],
+];
+
+function brFmt(ms){ return new Date(ms).toLocaleString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Berlin'}); }
+
+function koCard(m){
+    if(!m) return '<div class="ko-card"><div class="ko-row"><span class="ko-team ko-tba">offen</span></div><div class="ko-row"><span class="ko-team ko-tba">offen</span></div></div>';
+    const tbaA = !m.teamA || m.teamA.startsWith('TBA');
+    const tbaB = !m.teamB || m.teamB.startsWith('TBA');
+    const live = !m.finished && m.liveA!=null && m.liveB!=null;
+    const sA = m.finished ? m.resultA : (live ? m.liveA : null);
+    const sB = m.finished ? m.resultB : (live ? m.liveB : null);
+    const winA = m.finished && m.resultA>m.resultB, winB = m.finished && m.resultB>m.resultA;
+    const cell=(name,tba)=> tba ? '<span class="ko-team ko-tba">offen</span>' : `<span class="ko-team">${f(name)} ${dn(name)}</span>`;
+    const row=(name,tba,score,win,lose)=>`<div class="ko-row${win?' win':''}${lose?' lose':''}">${cell(name,tba)}<span class="ko-score">${score!=null?score:''}</span></div>`;
+    let meta;
+    if(tbaA||tbaB) meta='⏳ Teams offen';
+    else if(m.finished) meta = (m.resultA===m.resultB) ? 'Endstand (i.E.)' : 'Endstand';
+    else if(live) meta='🔴 LIVE';
+    else meta=brFmt(m.kickoff);
+    return `<div class="ko-card${live?' live':''}">
+        ${row(m.teamA,tbaA,sA,winA,winB)}
+        ${row(m.teamB,tbaB,sB,winB,winA)}
+        <div class="ko-meta${live?' live':''}">${meta}</div></div>`;
+}
+
+function renderBracket(data){
+    const host=document.getElementById('tab-bracket'); if(!host||!data) return;
+    const ko={}; data.matches.filter(m=>m.type==='ko').forEach(m=>ko[m.id]=m);
+    
+    const slotHeightR32 = 85; // Basis-Höhe für einen Slot der 1. Runde (Sechzehntelfinale)
+    const totalHeight = 8 * slotHeightR32; // Gesamthöhe des Körpers = 680px
+    
+    const cols = BR_LAYOUT.map(([label,ids,level])=> {
+        const isCenter = (level === 4);
+        let bodyContent = '';
+        
+        if (isCenter) {
+            // Finale und Spiel um Platz 3 kompakt zusammen im Zentrum zentriert
+            bodyContent = `
+                <div style="display:flex; flex-direction:column; justify-content:center; gap:24px; height:100%;">
+                    <div class="ko-final-box">
+                        <div style="font-size:10px; text-align:center; color:var(--accent-green); font-weight:bold; margin-bottom:5px; letter-spacing:0.05em;">🏆 FINALE</div>
+                        ${koCard(ko[ids[0]])}
+                    </div>
+                    <div class="ko-third-box">
+                        <div style="font-size:10px; text-align:center; color:var(--text-muted); font-weight:bold; margin-bottom:5px; letter-spacing:0.05em;">🥉 SPIEL UM PLATZ 3</div>
+                        ${koCard(ko[ids[1]])}
+                    </div>
+                </div>`;
+        } else {
+            // Jede Spalte verdoppelt die Box-Höhe der Vorrunde -> Garantiert perfekte mathematische Zentrierung
+            const currentSlotHeight = slotHeightR32 * Math.pow(2, level);
+            bodyContent = ids.map(id => `
+                <div style="height:${currentSlotHeight}px; display:flex; flex-direction:column; justify-content:center;">
+                    ${koCard(ko[id])}
+                </div>
+            `).join('');
+        }
+        
+        const centerClass = isCenter ? ' br-col-final' : '';
+        return `<div class="br-col${centerClass}"><div class="br-col-head">${isCenter ? '🏆 Endrunde' : label}</div><div class="br-col-body" style="justify-content:unset; height:${totalHeight}px;">${bodyContent}</div></div>`;
+    }).join('');
+    
+    const prev=host.querySelector('.br-scroll'); const prevLeft=prev?prev.scrollLeft:null;
+    host.innerHTML=`
+        <style>
+            .br-col-final .br-col-head { color: var(--accent-green); }
+            .ko-final-box .ko-card { border-color: var(--accent-green); box-shadow: 0 0 0 1px var(--accent-green); }
+        </style>
+        <h2 class="page-title">🌳 Turnierbaum</h2>
+            <p style="color:var(--text-muted);font-size:11px;padding:0 12px 6px;">← → wischen · Finale &amp; Platz 3 im Zentrum</p>
+            <div class="br-scroll"><div class="br-cols" style="height:auto;">${cols}</div></div>`;
+        
+    const sc=host.querySelector('.br-scroll');
+    if(sc){ sc.scrollLeft = (prevLeft!=null) ? prevLeft : Math.max(0,(sc.scrollWidth-sc.clientWidth)/2); }
+}
+
 // ── Stats (Orchestrierung) ────────────────────────────────────────────────────
+
 function renderStats(data) {
     renderPersonalStatsCard(data);
     renderMvpNights(data);
@@ -2132,6 +2285,7 @@ async function refreshData() {
     renderGroups(globalData.matches);
     renderRankings(globalData);
     renderStats(globalData);
+    renderBracket(globalData);
     if(adminMode) renderAdmin(globalData.matches,globalData.users);
     renderNotifBadge(globalData);
     restoreSocialState(_ss);                 // offene Box + Entwurf wiederherstellen
@@ -2177,7 +2331,7 @@ async function init() {
             updateHeaderStats(globalData);
         }
         renderMatches(globalData);renderGroups(globalData.matches);
-        renderRankings(globalData);renderStats(globalData);
+        renderRankings(globalData);renderStats(globalData);renderBracket(globalData);
         renderNotifBadge(globalData);
         if(adminMode) renderAdmin(globalData.matches,globalData.users);
         if(adminMode&&!myToken) switchTab('tab-admin'); else switchTab('tab-matches');
