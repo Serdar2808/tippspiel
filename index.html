@@ -235,15 +235,26 @@
             font-weight:600;cursor:pointer;font-family:inherit; }
         .pong-controls button:active { background:var(--card-bg2); }
         .pong-hint { font-size:12px;color:var(--text-muted);text-align:center;min-height:14px; }
-        #pong-overlay { position:absolute;inset:0;display:none;align-items:center;justify-content:center;
+        .dino-shell { position:relative;display:flex;flex-direction:column;align-items:center;
+            gap:10px;padding:6px 12px 4px; }
+        #dino-board { background:#060a10;border:1px solid var(--border);border-radius:10px;
+            touch-action:none;display:block;max-width:100%;cursor:pointer; }
+        .games-nav { display:flex;gap:8px;justify-content:center;flex-wrap:wrap;
+            margin:4px 12px 10px;padding-bottom:2px; }
+        .games-nav-btn { height:34px;padding:0 16px;background:var(--card-bg);color:var(--text-muted);
+            border:1px solid var(--border);border-radius:8px;font-size:14px;font-weight:600;
+            cursor:pointer;font-family:inherit; }
+        .games-nav-btn.active { background:rgba(204,255,0,.12);border-color:var(--accent-green);
+            color:var(--accent-green); }
+        .game-overlay { position:absolute;inset:0;display:none;align-items:center;justify-content:center;
             background:rgba(13,17,23,.85);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);
             border-radius:10px;z-index:5; }
-        #pong-overlay.show { display:flex; }
-        #pong-panel { text-align:center;background:var(--card-bg);border:1px solid var(--border);
+        .game-overlay.show { display:flex; }
+        .game-panel { text-align:center;background:var(--card-bg);border:1px solid var(--border);
             border-radius:14px;padding:24px 28px;max-width:300px; }
-        #pong-panel h3 { margin:0 0 6px;font-size:20px; }
-        #pong-panel p { margin:0 0 16px;color:var(--text-muted);font-size:14px; }
-        #pong-panel button { background:var(--btn-green);color:#fff;border:none;border-radius:8px;
+        .game-panel h3 { margin:0 0 6px;font-size:20px; }
+        .game-panel p { margin:0 0 16px;color:var(--text-muted);font-size:14px; }
+        .game-panel button { background:var(--btn-green);color:#fff;border:none;border-radius:8px;
             padding:10px 22px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit; }
     </style>
 </head>
@@ -444,31 +455,55 @@
 
 <div id="tab-bracket" class="tab-content"></div>
 
-<!-- PONG TAB -->
-<div id="tab-pong" class="tab-content">
-    <h2 class="page-title">🏓 Pong</h2>
-    <div class="pong-shell">
-        <div class="pong-score">
-            <div class="you"><span class="lbl">Du</span><span class="num" id="pong-you">0</span></div>
-            <span class="sep">:</span>
-            <div class="cpu"><span class="lbl">Computer</span><span class="num" id="pong-cpu">0</span></div>
+<!-- GAMES TAB -->
+<div id="tab-games" class="tab-content">
+    <h2 class="page-title">🎮 Games</h2>
+    <div class="games-nav">
+        <button class="games-nav-btn active" id="gnav-pong" onclick="GAMES.switch('pong',this)">🏓 Pong</button>
+        <button class="games-nav-btn" id="gnav-dino" onclick="GAMES.switch('dino',this)">🦖 Dino</button>
+    </div>
+
+    <div id="game-pong" class="game-section">
+        <div class="pong-shell">
+            <div class="pong-score">
+                <div class="you"><span class="lbl">Du</span><span class="num" id="pong-you">0</span></div>
+                <span class="sep">:</span>
+                <div class="cpu"><span class="lbl">Computer</span><span class="num" id="pong-cpu">0</span></div>
+            </div>
+            <canvas id="pong-board"></canvas>
+            <div class="pong-controls">
+                <select id="pong-diff">
+                    <option value="easy">Leicht</option>
+                    <option value="mid" selected>Mittel</option>
+                    <option value="hard">Schwer</option>
+                </select>
+                <button id="pong-pause">Pause</button>
+                <button id="pong-reset">Neu</button>
+            </div>
+            <div class="pong-hint">Finger oder Maus zum Steuern · 11 Punkte gewinnen</div>
+            <div id="pong-overlay" class="game-overlay">
+                <div class="game-panel">
+                    <h3 id="pong-ptitle">Pong</h3>
+                    <p id="pong-ptext">Erster auf 11 Punkte gewinnt.</p>
+                    <button id="pong-start">Spielen</button>
+                </div>
+            </div>
         </div>
-        <canvas id="pong-board"></canvas>
-        <div class="pong-controls">
-            <select id="pong-diff">
-                <option value="easy">Leicht</option>
-                <option value="mid" selected>Mittel</option>
-                <option value="hard">Schwer</option>
-            </select>
-            <button id="pong-pause">Pause</button>
-            <button id="pong-reset">Neu</button>
-        </div>
-        <div class="pong-hint">Finger oder Maus zum Steuern · 11 Punkte gewinnen</div>
-        <div id="pong-overlay">
-            <div id="pong-panel">
-                <h3 id="pong-ptitle">Pong</h3>
-                <p id="pong-ptext">Erster auf 11 Punkte gewinnt.</p>
-                <button id="pong-start">Spielen</button>
+    </div>
+
+    <div id="game-dino" class="game-section" style="display:none;">
+        <div class="dino-shell">
+            <canvas id="dino-board"></canvas>
+            <div class="pong-controls">
+                <button id="dino-restart">Neu starten</button>
+            </div>
+            <div class="pong-hint">Tippen / Leertaste / ↑ = Springen</div>
+            <div id="dino-overlay" class="game-overlay">
+                <div class="game-panel">
+                    <h3 id="dino-ptitle">🦖 Dino Run</h3>
+                    <p id="dino-ptext">Spring über die Kakteen. Tippen zum Springen.</p>
+                    <button id="dino-start">Los geht's</button>
+                </div>
             </div>
         </div>
     </div>
@@ -554,7 +589,7 @@
     <button onclick="switchTab('tab-bracket')" id="btn-bracket">🌳<br>Baum</button>
     <button onclick="switchTab('tab-rankings')" id="btn-rankings">🏆<br>Rangliste</button>
     <button onclick="switchTab('tab-stats')" id="btn-stats">📈<br>Stats</button>
-    <button onclick="switchTab('tab-pong')" id="btn-pong">🏓<br>Pong</button>
+    <button onclick="switchTab('tab-games')" id="btn-games">🎮<br>Games</button>
 </nav>
 
 <script>
@@ -735,8 +770,8 @@ function switchTab(id) {
     document.querySelectorAll('.bottom-nav button').forEach(b=>b.classList.remove('active'));
     const btn=document.getElementById('btn-'+id.replace('tab-',''));
     if(btn) btn.classList.add('active');
-    if(window.PONG){ if(id==='tab-pong') PONG.enter(); else PONG.leave(); }
-    if(globalData && id!=='tab-pong') refreshData();
+    if(window.GAMES){ if(id==='tab-games') GAMES.enter(); else GAMES.leave(); }
+    if(globalData && id!=='tab-games') refreshData();
 }
 
 // ── Filter ───────────────────────────────────────────────────────────────────
@@ -2832,7 +2867,248 @@ const PONG = (function () {
 
     return { enter, leave };
 })();
-window.PONG = PONG;
+// ── Dino Run (KI-loser Endless-Runner) ────────────────────────────────────────
+const DINO = (function () {
+    const W = 600, H = 200;
+    const GROUND = 168;            // y-Linie, auf der Dino/Kakteen stehen
+    const DINO_W = 30, DINO_H = 44;
+    const GRAV = 0.7, JUMP_V = -11.4;
+
+    let canvas, ctx, restartBtn, overlay, pTitle, pText, startBtn, hiNote;
+    let scale = 1, rafId = null, active = false, inited = false;
+
+    const state = {
+        dinoY: GROUND - DINO_H, vy: 0, onGround: true,
+        obstacles: [], spawnIn: 60,
+        speed: 5.2, score: 0, hi: 0, frame: 0,
+        running: false, over: false
+    };
+
+    function loadHi() {
+        try { return parseInt(localStorage.getItem('dino_hi') || '0', 10) || 0; }
+        catch (e) { return 0; }
+    }
+    function saveHi(v) { try { localStorage.setItem('dino_hi', String(v)); } catch (e) {} }
+
+    function reset() {
+        state.dinoY = GROUND - DINO_H;
+        state.vy = 0; state.onGround = true;
+        state.obstacles = []; state.spawnIn = 60;
+        state.speed = 5.2; state.score = 0; state.frame = 0;
+        state.over = false;
+    }
+
+    function jump() {
+        if (state.over) { startGame(); return; }
+        if (!state.running) return;
+        if (state.onGround) { state.vy = JUMP_V; state.onGround = false; }
+    }
+
+    function spawn() {
+        const r = Math.random();
+        let w, h;
+        if (r < 0.5) { w = 16; h = 32; }        // kleiner Kaktus
+        else if (r < 0.8) { w = 24; h = 44; }   // großer Kaktus
+        else { w = 40; h = 38; }                 // Doppelkaktus
+        state.obstacles.push({ x: W + 10, w: w, h: h });
+        // nächster Abstand: skaliert leicht mit Tempo
+        state.spawnIn = Math.round(58 + Math.random() * 60 + state.speed * 2);
+    }
+
+    function step() {
+        state.frame++;
+        state.score += state.speed * 0.08;
+        state.speed += 0.0016;
+
+        // Dino-Physik
+        state.vy += GRAV;
+        state.dinoY += state.vy;
+        if (state.dinoY >= GROUND - DINO_H) {
+            state.dinoY = GROUND - DINO_H;
+            state.vy = 0; state.onGround = true;
+        }
+
+        // Hindernisse
+        if (--state.spawnIn <= 0) spawn();
+        for (let i = state.obstacles.length - 1; i >= 0; i--) {
+            const o = state.obstacles[i];
+            o.x -= state.speed;
+            if (o.x + o.w < -10) { state.obstacles.splice(i, 1); continue; }
+            // Kollision (mit etwas Toleranz, fairer)
+            const dx = 50 + 4, dw = DINO_W - 8;
+            const dyTop = state.dinoY + 4, dh = DINO_H - 6;
+            const oy = GROUND - o.h;
+            if (dx < o.x + o.w && dx + dw > o.x && dyTop < GROUND && dyTop + dh > oy) {
+                gameOver();
+                return;
+            }
+        }
+    }
+
+    function gameOver() {
+        state.running = false;
+        state.over = true;
+        const sc = Math.floor(state.score);
+        if (sc > state.hi) { state.hi = sc; saveHi(sc); }
+        pTitle.textContent = 'Game Over 🌵';
+        pText.textContent = 'Score ' + sc + '  ·  Best ' + state.hi;
+        startBtn.textContent = 'Nochmal';
+        overlay.classList.add('show');
+    }
+
+    function drawDino() {
+        const x = 50, y = state.dinoY;
+        ctx.fillStyle = '#ccff00';
+        // Körper
+        ctx.fillRect(x + 6, y + 10, 16, 20);
+        // Kopf
+        ctx.fillRect(x + 16, y, 14, 14);
+        // Schnauze
+        ctx.fillRect(x + 28, y + 6, 6, 6);
+        // Schwanz
+        ctx.fillRect(x, y + 12, 8, 6);
+        // Auge
+        ctx.fillStyle = '#060a10';
+        ctx.fillRect(x + 25, y + 4, 3, 3);
+        // Beine (laufanimation am Boden)
+        ctx.fillStyle = '#ccff00';
+        const legSwap = state.onGround && (state.frame % 12 < 6);
+        if (state.onGround) {
+            if (legSwap) { ctx.fillRect(x + 8, y + 30, 5, 10); ctx.fillRect(x + 16, y + 30, 5, 6); }
+            else { ctx.fillRect(x + 8, y + 30, 5, 6); ctx.fillRect(x + 16, y + 30, 5, 10); }
+        } else {
+            ctx.fillRect(x + 8, y + 30, 5, 8); ctx.fillRect(x + 16, y + 30, 5, 8);
+        }
+    }
+
+    function drawCactus(o) {
+        const y = GROUND - o.h;
+        ctx.fillStyle = '#3fb950';
+        ctx.fillRect(o.x, y, o.w, o.h);
+        // kleine Arme
+        ctx.fillRect(o.x - 4, y + o.h * 0.35, 4, o.h * 0.3);
+        ctx.fillRect(o.x + o.w, y + o.h * 0.45, 4, o.h * 0.25);
+    }
+
+    function draw() {
+        ctx.save();
+        ctx.scale(scale, scale);
+        ctx.clearRect(0, 0, W, H);
+
+        // Boden
+        ctx.strokeStyle = '#30363d';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, GROUND); ctx.lineTo(W, GROUND);
+        ctx.stroke();
+        // bewegte Bodenpunkte
+        ctx.fillStyle = '#1c2530';
+        const off = state.frame * state.speed % 40;
+        for (let gx = -off; gx < W; gx += 40) ctx.fillRect(gx, GROUND + 6, 14, 2);
+
+        state.obstacles.forEach(drawCactus);
+        drawDino();
+
+        // Score
+        ctx.fillStyle = '#8b949e';
+        ctx.font = 'bold 14px -apple-system,system-ui,sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText('HI ' + String(state.hi).padStart(5, '0') +
+                     '   ' + String(Math.floor(state.score)).padStart(5, '0'), W - 8, 22);
+        ctx.textAlign = 'left';
+        ctx.restore();
+    }
+
+    function loop() {
+        if (!active) { rafId = null; return; }
+        if (state.running) step();
+        draw();
+        rafId = requestAnimationFrame(loop);
+    }
+
+    function resize() {
+        const maxW = Math.min(window.innerWidth - 24, 560);
+        let cw = maxW;
+        let ch = cw * (H / W);
+        const maxH = Math.max(120, window.innerHeight - 340);
+        if (ch > maxH) { ch = maxH; cw = ch * (W / H); }
+        scale = cw / W;
+        canvas.width = Math.round(cw);
+        canvas.height = Math.round(ch);
+        if (active) draw();
+    }
+
+    function startGame() {
+        overlay.classList.remove('show');
+        reset();
+        state.running = true;
+    }
+
+    function init() {
+        canvas = document.getElementById('dino-board');
+        ctx = canvas.getContext('2d');
+        restartBtn = document.getElementById('dino-restart');
+        overlay = document.getElementById('dino-overlay');
+        pTitle = document.getElementById('dino-ptitle');
+        pText = document.getElementById('dino-ptext');
+        startBtn = document.getElementById('dino-start');
+
+        state.hi = loadHi();
+
+        canvas.addEventListener('mousedown', e => { e.preventDefault(); jump(); });
+        canvas.addEventListener('touchstart', e => { e.preventDefault(); jump(); }, { passive: false });
+        window.addEventListener('keydown', e => {
+            if (!active) return;
+            if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w') { e.preventDefault(); jump(); }
+        });
+        startBtn.addEventListener('click', startGame);
+        restartBtn.addEventListener('click', startGame);
+
+        reset();
+        inited = true;
+    }
+
+    function enter() {
+        active = true;
+        if (!inited) init();
+        resize();
+        if (!state.running && !state.over) {
+            pTitle.textContent = '🦖 Dino Run';
+            pText.textContent = 'Spring über die Kakteen. Tippen zum Springen.';
+            startBtn.textContent = "Los geht's";
+            overlay.classList.add('show');
+        }
+        if (!rafId) loop();
+    }
+
+    function leave() {
+        active = false;
+        state.running = false;
+        if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    }
+
+    window.addEventListener('resize', () => { if (active) resize(); });
+
+    return { enter, leave };
+})();
+
+// ── Games-Hub-Controller ──────────────────────────────────────────────────────
+const GAMES = (function () {
+    let current = 'pong';
+    function enter() { current === 'pong' ? PONG.enter() : DINO.enter(); }
+    function leave() { PONG.leave(); DINO.leave(); }
+    function switchTo(g, btn) {
+        leave();
+        current = g;
+        document.getElementById('game-pong').style.display = g === 'pong' ? 'block' : 'none';
+        document.getElementById('game-dino').style.display = g === 'dino' ? 'block' : 'none';
+        document.querySelectorAll('.games-nav-btn').forEach(b => b.classList.remove('active'));
+        if (btn) btn.classList.add('active');
+        enter();
+    }
+    return { enter: enter, leave: leave, switch: switchTo };
+})();
+window.GAMES = GAMES;
 
 // ── Service Worker: Registrierung + zuverlässige Updates ──────────────────────
 // Ohne diesen Block wird nie eine neue sw.js geladen – der alte Worker bleibt aktiv.
