@@ -217,6 +217,34 @@
         .done-badge { display:inline-flex;align-items:center;gap:3px;background:rgba(204,255,0,.12);
             border:1px solid var(--accent-green);color:var(--accent-green);border-radius:20px;
             padding:1px 8px;font-size:11px;font-weight:700; }
+        /* ── Pong ──────────────────────────────────────────────── */
+        .pong-shell { position:relative;display:flex;flex-direction:column;align-items:center;
+            gap:10px;padding:6px 12px 4px; }
+        .pong-score { display:flex;align-items:flex-end;gap:22px;font-variant-numeric:tabular-nums; }
+        .pong-score .lbl { display:block;font-size:11px;font-weight:600;letter-spacing:.06em;
+            text-transform:uppercase;color:var(--text-muted);text-align:center; }
+        .pong-score .num { display:block;font-size:34px;font-weight:800;line-height:1;text-align:center; }
+        .pong-score .you .num { color:var(--accent-green); }
+        .pong-score .cpu .num { color:var(--accent); }
+        .pong-score .sep { color:var(--border);font-size:22px;padding-bottom:2px; }
+        #pong-board { background:#060a10;border:1px solid var(--border);border-radius:10px;
+            touch-action:none;display:block;max-width:100%; }
+        .pong-controls { display:flex;gap:8px;flex-wrap:wrap;justify-content:center; }
+        .pong-controls select, .pong-controls button { background:var(--card-bg);color:var(--text);
+            border:1px solid var(--border);border-radius:8px;padding:9px 16px;font-size:14px;
+            font-weight:600;cursor:pointer;font-family:inherit; }
+        .pong-controls button:active { background:var(--card-bg2); }
+        .pong-hint { font-size:12px;color:var(--text-muted);text-align:center;min-height:14px; }
+        #pong-overlay { position:absolute;inset:0;display:none;align-items:center;justify-content:center;
+            background:rgba(13,17,23,.85);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);
+            border-radius:10px;z-index:5; }
+        #pong-overlay.show { display:flex; }
+        #pong-panel { text-align:center;background:var(--card-bg);border:1px solid var(--border);
+            border-radius:14px;padding:24px 28px;max-width:300px; }
+        #pong-panel h3 { margin:0 0 6px;font-size:20px; }
+        #pong-panel p { margin:0 0 16px;color:var(--text-muted);font-size:14px; }
+        #pong-panel button { background:var(--btn-green);color:#fff;border:none;border-radius:8px;
+            padding:10px 22px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit; }
     </style>
 </head>
 <body>
@@ -416,6 +444,36 @@
 
 <div id="tab-bracket" class="tab-content"></div>
 
+<!-- PONG TAB -->
+<div id="tab-pong" class="tab-content">
+    <h2 class="page-title">🏓 Pong</h2>
+    <div class="pong-shell">
+        <div class="pong-score">
+            <div class="you"><span class="lbl">Du</span><span class="num" id="pong-you">0</span></div>
+            <span class="sep">:</span>
+            <div class="cpu"><span class="lbl">Computer</span><span class="num" id="pong-cpu">0</span></div>
+        </div>
+        <canvas id="pong-board"></canvas>
+        <div class="pong-controls">
+            <select id="pong-diff">
+                <option value="easy">Leicht</option>
+                <option value="mid" selected>Mittel</option>
+                <option value="hard">Schwer</option>
+            </select>
+            <button id="pong-pause">Pause</button>
+            <button id="pong-reset">Neu</button>
+        </div>
+        <div class="pong-hint">Finger oder Maus zum Steuern · 11 Punkte gewinnen</div>
+        <div id="pong-overlay">
+            <div id="pong-panel">
+                <h3 id="pong-ptitle">Pong</h3>
+                <p id="pong-ptext">Erster auf 11 Punkte gewinnt.</p>
+                <button id="pong-start">Spielen</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- ADMIN TAB -->
 <div id="tab-admin" class="tab-content">
     <h2 class="page-title">⚙️ Admin</h2>
@@ -496,6 +554,7 @@
     <button onclick="switchTab('tab-bracket')" id="btn-bracket">🌳<br>Baum</button>
     <button onclick="switchTab('tab-rankings')" id="btn-rankings">🏆<br>Rangliste</button>
     <button onclick="switchTab('tab-stats')" id="btn-stats">📈<br>Stats</button>
+    <button onclick="switchTab('tab-pong')" id="btn-pong">🏓<br>Pong</button>
 </nav>
 
 <script>
@@ -600,7 +659,7 @@ function computeAchievements(data, userId) {
     }
     // ⚡ Vorausdenker: alle offenen Spiele getippt
     const now=Date.now();
-    const open=data.matches.filter(m=>!m.finished&&m.kickoff>now&&(!m.teamA.startsWith('TBA')&&!m.teamB.startsWith('TBA')));
+    const open=data.matches.filter(m=>!m.finished&&m.kickoff>now&&!m.teamA.startsWith('TBA'));
     if(open.length>0&&open.every(m=>data.tips.find(t=>t.matchId===m.id&&t.userId===userId&&t.tipA!==null)))
         badges.push({icon:'⚡',label:'Vorausdenker',desc:'Alle offenen Spiele getippt'});
     // 🏆 KO-Spezialist: ≥60% der KO-Spiele richtig
@@ -676,7 +735,8 @@ function switchTab(id) {
     document.querySelectorAll('.bottom-nav button').forEach(b=>b.classList.remove('active'));
     const btn=document.getElementById('btn-'+id.replace('tab-',''));
     if(btn) btn.classList.add('active');
-    if(globalData) refreshData();
+    if(window.PONG){ if(id==='tab-pong') PONG.enter(); else PONG.leave(); }
+    if(globalData && id!=='tab-pong') refreshData();
 }
 
 // ── Filter ───────────────────────────────────────────────────────────────────
@@ -702,7 +762,7 @@ function renderUrgencyBanner(data) {
     if(!me){banner.style.display='none';return;}
     const now=Date.now();
     const urgent=data.matches.filter(m=>{
-        if(m.finished||m.kickoff<now||m.kickoff>now+7200000||m.teamA.startsWith('TBA')||m.teamB.startsWith('TBA')) return false;
+        if(m.finished||m.kickoff<now||m.kickoff>now+7200000||m.teamA.startsWith('TBA')) return false;
         return !data.tips.find(t=>t.matchId===m.id&&t.userId===me.id&&t.tipA!==null);
     });
     if(!urgent.length){banner.style.display='none';return;}
@@ -717,7 +777,7 @@ function renderTipProgress(data) {
     const me=data.users.find(u=>u.token===myToken);
     if(!me){el.innerHTML='';return;}
     const now=Date.now();
-    const upcoming=data.matches.filter(m=>!m.finished&&m.kickoff>now&&(!m.teamA.startsWith('TBA')&&!m.teamB.startsWith('TBA')));
+    const upcoming=data.matches.filter(m=>!m.finished&&m.kickoff>now&&!m.teamA.startsWith('TBA'));
     const tipped=upcoming.filter(m=>data.tips.find(t=>t.matchId===m.id&&t.userId===me.id&&t.tipA!==null)).length;
     const total=upcoming.length,pct=total>0?Math.round((tipped/total)*100):100;
     const col=pct===100?'var(--accent-green)':pct<50?'var(--accent)':'#fb923c';
@@ -844,7 +904,7 @@ function renderQuickTip(data) {
     const me=data.users.find(u=>u.token===myToken);
     if(!me) return;
     const now=Date.now();
-    const open=data.matches.filter(m=>!m.finished&&m.kickoff>now&&(!m.teamA.startsWith('TBA')&&!m.teamB.startsWith('TBA'))).sort((a,b)=>a.kickoff-b.kickoff);
+    const open=data.matches.filter(m=>!m.finished&&m.kickoff>now&&!m.teamA.startsWith('TBA')).sort((a,b)=>a.kickoff-b.kickoff);
     if(!open.length){
         document.getElementById('quicktip-content').innerHTML='<p style="color:var(--text-muted);text-align:center;padding:40px;">Keine offenen Spiele.</p>';
         return;
@@ -885,7 +945,7 @@ async function saveAllTips() {
     const me=globalData?.users.find(u=>u.token===myToken);
     if(!me) return;
     const now=Date.now();
-    const open=globalData.matches.filter(m=>!m.finished&&m.kickoff>now&&(!m.teamA.startsWith('TBA')&&!m.teamB.startsWith('TBA')));
+    const open=globalData.matches.filter(m=>!m.finished&&m.kickoff>now&&!m.teamA.startsWith('TBA'));
     let saved=0, skipped=0, errors=0;
     for(const m of open) {
         const elA=document.getElementById('qt-A-'+m.id);
@@ -1111,10 +1171,7 @@ function renderMatches(data) {
     const _nightIds=currentNightIds(data);
     document.getElementById('matches-list').innerHTML=matches.map(m=>{
         const tip=me?data.tips.find(t=>t.matchId===m.id&&t.userId===me.id):null;
-        const tbaA = m.type==='ko' && String(m.teamA).startsWith('TBA');
-        const tbaB = m.type==='ko' && String(m.teamB).startsWith('TBA');
-        const bothTBA = tbaA && tbaB;
-        const isTBA = tbaA || tbaB;
+        const isTBA = m.type==='ko' && (m.teamA.startsWith('TBA')||m.teamB.startsWith('TBA'));
         const _inWin = m.kickoff<=now && now<=m.kickoff+150*60000;   // 2,5h ab Anpfiff
         const isLive = !m.finished && !isTBA && _inWin;
         const isFreshDone = m.finished && _inWin;                    // gerade beendet, noch im Fenster
@@ -1149,7 +1206,7 @@ function renderMatches(data) {
                 <span>${isSoon?'<span class="soon-dot"></span>':''}${new Date(m.kickoff).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})} Uhr ${m.type==='ko'?'· '+m.group:'· Gr.'+m.group}${m.finished?' <span style="color:var(--accent-green);font-weight:700">✓</span>':''}</span>
                 ${isLive?'<span class="live-badge">🔴 Live</span>':isFreshDone?'<span class="done-badge">🏁 Gerade beendet</span>':(!isLocked&&cd?`<span class="countdown-timer" data-kickoff="${m.kickoff}" style="color:#fb923c;font-weight:700;font-size:12px;">${cd}</span>`:'')}
             </div>
-            <strong style="font-size:1.05rem;display:block;text-align:center;margin:6px 0;">${bothTBA?'⏳ Teams noch nicht bekannt':`${tbaA?'<span style="color:var(--text-muted);font-style:italic;">offen</span>':`${f(m.teamA)} ${dn(m.teamA)}`} vs ${tbaB?'<span style="color:var(--text-muted);font-style:italic;">offen</span>':`${dn(m.teamB)} ${f(m.teamB)}`}`}</strong>
+            <strong style="font-size:1.05rem;display:block;text-align:center;margin:6px 0;">${isTBA?'⏳ Teams noch nicht bekannt':`${f(m.teamA)} ${dn(m.teamA)} vs ${dn(m.teamB)} ${f(m.teamB)}`}</strong>
             ${resultHtml}${liveHtml}${predHtml}
             <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;">
                 ${isTBA?'<div style="color:var(--text-muted);font-size:12px;font-style:italic;">Tipp wird freigeschaltet sobald Teams feststehen</div>':me?`<div>
@@ -1595,7 +1652,7 @@ function renderPersonalStats(data, userId, isSelf){
     const hitRate=total>0?Math.round(((exact+diff+tend)/total)*100):0;
     const avgPts=total>0?(pts/total).toFixed(2):'-';
     const now=Date.now();
-    const realGames=data.matches.filter(m=>(!m.teamA.startsWith('TBA')&&!m.teamB.startsWith('TBA')));
+    const realGames=data.matches.filter(m=>!m.teamA.startsWith('TBA'));
     const openGames=realGames.filter(m=>!m.finished&&m.kickoff>now);
     const closedGames=realGames.filter(m=>m.finished||m.kickoff<=now);
     const _mine=m=>myTips.find(t=>t.matchId===m.id&&t.tipA!==null);
@@ -1727,26 +1784,17 @@ function renderGoalBias(data){
     }).join('');
 }
 
-// ── Turnierbaum (links/rechts gespiegelt mit mathematisch exakter Zentrierung) ──
-const BR_SIDES = {
-    left:  { R32:['m74','m77','m73','m75','m83','m84','m81','m82'], R16:['m89','m90','m93','m94'], QF:['m97','m98'],  SF:['m101'] },
-    right: { R32:['m76','m78','m79','m80','m86','m88','m85','m87'], R16:['m91','m92','m95','m96'], QF:['m99','m100'], SF:['m102'] },
+// ── Stats (Orchestrierung) ────────────────────────────────────────────────────
+// ── Turnierbaum (kompletter Baum, horizontal scrollbar) ───────────────────────
+const BR_FULL = {
+    R32:['m74','m77','m73','m75','m83','m84','m81','m82','m76','m78','m79','m80','m86','m88','m85','m87'],
+    R16:['m89','m90','m93','m94','m91','m92','m95','m96'],
+    QF :['m97','m98','m99','m100'],
+    SF :['m101','m102'],
+    FIN:['m104'],
 };
-
-const BR_LAYOUT = [
-    ['Sechzehntel', BR_SIDES.left.R32, 0],
-    ['Achtel',      BR_SIDES.left.R16, 1],
-    ['Viertel',     BR_SIDES.left.QF,  2],
-    ['Halbfinale',  BR_SIDES.left.SF,  3],
-    ['Finale',      ['m104', 'm103'],  4], // Finale & Platz 3 vereint in der Mitte
-    ['Halbfinale',  BR_SIDES.right.SF, 3],
-    ['Viertel',     BR_SIDES.right.QF, 2],
-    ['Achtel',      BR_SIDES.right.R16, 1],
-    ['Sechzehntel', BR_SIDES.right.R32, 0],
-];
-
+const BR_COLS=[['Sechzehntel','R32'],['Achtel','R16'],['Viertel','QF'],['Halbfinale','SF'],['Finale','FIN']];
 function brFmt(ms){ return new Date(ms).toLocaleString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Berlin'}); }
-
 function koCard(m){
     if(!m) return '<div class="ko-card"><div class="ko-row"><span class="ko-team ko-tba">offen</span></div><div class="ko-row"><span class="ko-team ko-tba">offen</span></div></div>';
     const tbaA = !m.teamA || m.teamA.startsWith('TBA');
@@ -1767,60 +1815,18 @@ function koCard(m){
         ${row(m.teamB,tbaB,sB,winB,winA)}
         <div class="ko-meta${live?' live':''}">${meta}</div></div>`;
 }
-
 function renderBracket(data){
     const host=document.getElementById('tab-bracket'); if(!host||!data) return;
     const ko={}; data.matches.filter(m=>m.type==='ko').forEach(m=>ko[m.id]=m);
-    
-    const slotHeightR32 = 85; // Basis-Höhe für einen Slot der 1. Runde (Sechzehntelfinale)
-    const totalHeight = 8 * slotHeightR32; // Gesamthöhe des Körpers = 680px
-    
-    const cols = BR_LAYOUT.map(([label,ids,level])=> {
-        const isCenter = (level === 4);
-        let bodyContent = '';
-        
-        if (isCenter) {
-            // Finale und Spiel um Platz 3 kompakt zusammen im Zentrum zentriert
-            bodyContent = `
-                <div style="display:flex; flex-direction:column; justify-content:center; gap:24px; height:100%;">
-                    <div class="ko-final-box">
-                        <div style="font-size:10px; text-align:center; color:var(--accent-green); font-weight:bold; margin-bottom:5px; letter-spacing:0.05em;">🏆 FINALE</div>
-                        ${koCard(ko[ids[0]])}
-                    </div>
-                    <div class="ko-third-box">
-                        <div style="font-size:10px; text-align:center; color:var(--text-muted); font-weight:bold; margin-bottom:5px; letter-spacing:0.05em;">🥉 SPIEL UM PLATZ 3</div>
-                        ${koCard(ko[ids[1]])}
-                    </div>
-                </div>`;
-        } else {
-            // Jede Spalte verdoppelt die Box-Höhe der Vorrunde -> Garantiert perfekte mathematische Zentrierung
-            const currentSlotHeight = slotHeightR32 * Math.pow(2, level);
-            bodyContent = ids.map(id => `
-                <div style="height:${currentSlotHeight}px; display:flex; flex-direction:column; justify-content:center;">
-                    ${koCard(ko[id])}
-                </div>
-            `).join('');
-        }
-        
-        const centerClass = isCenter ? ' br-col-final' : '';
-        return `<div class="br-col${centerClass}"><div class="br-col-head">${isCenter ? '🏆 Endrunde' : label}</div><div class="br-col-body" style="justify-content:unset; height:${totalHeight}px;">${bodyContent}</div></div>`;
-    }).join('');
-    
-    const prev=host.querySelector('.br-scroll'); const prevLeft=prev?prev.scrollLeft:null;
-    host.innerHTML=`
-        <style>
-            .br-col-final .br-col-head { color: var(--accent-green); }
-            .ko-final-box .ko-card { border-color: var(--accent-green); box-shadow: 0 0 0 1px var(--accent-green); }
-        </style>
-        <h2 class="page-title">🌳 Turnierbaum</h2>
-            <p style="color:var(--text-muted);font-size:11px;padding:0 12px 6px;">← → wischen · Finale &amp; Platz 3 im Zentrum</p>
-            <div class="br-scroll"><div class="br-cols" style="height:auto;">${cols}</div></div>`;
-        
-    const sc=host.querySelector('.br-scroll');
-    if(sc){ sc.scrollLeft = (prevLeft!=null) ? prevLeft : Math.max(0,(sc.scrollWidth-sc.clientWidth)/2); }
+    const colHeight = BR_FULL.R32.length * 64;
+    const cols = BR_COLS.map(([label,key])=>
+        `<div class="br-col"><div class="br-col-head">${label}</div><div class="br-col-body">${BR_FULL[key].map(id=>koCard(ko[id])).join('')}</div></div>`
+    ).join('');
+    host.innerHTML=`<h2 class="page-title">🌳 Turnierbaum</h2>
+        <p style="color:var(--text-muted);font-size:11px;padding:0 12px 6px;">← → wischen für die ganze Runde</p>
+        <div class="br-scroll"><div class="br-cols" style="height:${colHeight}px">${cols}</div></div>
+        <div class="br-final-wrap"><div class="br-col-head" style="text-align:left;margin-bottom:6px;">🥉 Spiel um Platz 3</div>${koCard(ko['m103'])}</div>`;
 }
-
-// ── Stats (Orchestrierung) ────────────────────────────────────────────────────
 
 function renderStats(data) {
     renderPersonalStatsCard(data);
@@ -2575,6 +2581,258 @@ document.addEventListener('DOMContentLoaded', () => {
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') checkForUpdates();
 });
+
+// ── Pong (KI-Modus) ───────────────────────────────────────────────────────────
+const PONG = (function () {
+    const W = 600, H = 400;
+    const PADDLE_W = 12, PADDLE_H = 78, BALL_R = 8;
+    const WIN_SCORE = 11;
+    const DIFF = {
+        easy: { cpuSpeed: 4.2, react: 0.10, error: 60, ballSpeed: 5.0 },
+        mid:  { cpuSpeed: 6.0, react: 0.16, error: 34, ballSpeed: 5.8 },
+        hard: { cpuSpeed: 8.2, react: 0.24, error: 14, ballSpeed: 6.6 }
+    };
+
+    let canvas, ctx, diffSel, pauseBtn, resetBtn, overlay, pTitle, pText, startBtn;
+    let youEl, cpuEl;
+    let scale = 1, rafId = null, active = false, inited = false;
+    let keyUp = false, keyDown = false;
+
+    const state = {
+        you: 0, cpu: 0,
+        youY: H / 2 - PADDLE_H / 2,
+        cpuY: H / 2 - PADDLE_H / 2,
+        cpuTargetY: H / 2 - PADDLE_H / 2,
+        ball: null, running: false, over: false
+    };
+
+    function newBall(dir) {
+        const cfg = DIFF[diffSel.value];
+        const angle = Math.random() * 0.6 - 0.3;
+        const speed = cfg.ballSpeed;
+        return {
+            x: W / 2, y: H / 2,
+            vx: Math.cos(angle) * speed * (dir || (Math.random() < 0.5 ? 1 : -1)),
+            vy: Math.sin(angle) * speed
+        };
+    }
+
+    function reset(full) {
+        if (full) { state.you = 0; state.cpu = 0; }
+        state.youY = H / 2 - PADDLE_H / 2;
+        state.cpuY = H / 2 - PADDLE_H / 2;
+        state.cpuTargetY = state.cpuY;
+        state.ball = newBall();
+        state.over = false;
+        updateScore();
+    }
+
+    function updateScore() {
+        youEl.textContent = state.you;
+        cpuEl.textContent = state.cpu;
+    }
+
+    function setYouFromClientY(clientY) {
+        const rect = canvas.getBoundingClientRect();
+        const logical = (clientY - rect.top) / scale - PADDLE_H / 2;
+        state.youY = Math.max(0, Math.min(H - PADDLE_H, logical));
+    }
+
+    function bounce(b, paddleY, dir) {
+        const rel = (b.y - (paddleY + PADDLE_H / 2)) / (PADDLE_H / 2);
+        const speed = Math.min(13, Math.hypot(b.vx, b.vy) * 1.05 + 0.3);
+        const angle = rel * 1.05;
+        b.vx = Math.cos(angle) * speed * dir;
+        b.vy = Math.sin(angle) * speed;
+    }
+
+    function point() {
+        updateScore();
+        if (state.you >= WIN_SCORE || state.cpu >= WIN_SCORE) {
+            gameOver();
+        } else {
+            state.ball = newBall(state.you > state.cpu ? -1 : 1);
+        }
+    }
+
+    function gameOver() {
+        state.running = false;
+        state.over = true;
+        const won = state.you > state.cpu;
+        pTitle.textContent = won ? 'Gewonnen 🏆' : 'Verloren 😬';
+        pText.textContent = state.you + ' : ' + state.cpu;
+        startBtn.textContent = 'Nochmal';
+        overlay.classList.add('show');
+    }
+
+    function step() {
+        const cfg = DIFF[diffSel.value];
+        const b = state.ball;
+
+        if (keyUp) state.youY = Math.max(0, state.youY - 7);
+        if (keyDown) state.youY = Math.min(H - PADDLE_H, state.youY + 7);
+
+        if (b.vx > 0) {
+            if (Math.random() < cfg.react) {
+                state.cpuTargetY = b.y - PADDLE_H / 2 + (Math.random() * 2 - 1) * cfg.error;
+            }
+        } else {
+            state.cpuTargetY = H / 2 - PADDLE_H / 2;
+        }
+        const dy = state.cpuTargetY - state.cpuY;
+        const move = Math.max(-cfg.cpuSpeed, Math.min(cfg.cpuSpeed, dy));
+        state.cpuY = Math.max(0, Math.min(H - PADDLE_H, state.cpuY + move));
+
+        b.x += b.vx;
+        b.y += b.vy;
+
+        if (b.y - BALL_R < 0) { b.y = BALL_R; b.vy = Math.abs(b.vy); }
+        if (b.y + BALL_R > H) { b.y = H - BALL_R; b.vy = -Math.abs(b.vy); }
+
+        if (b.vx < 0 && b.x - BALL_R < PADDLE_W &&
+            b.y > state.youY && b.y < state.youY + PADDLE_H) {
+            b.x = PADDLE_W + BALL_R;
+            bounce(b, state.youY, 1);
+        }
+        if (b.vx > 0 && b.x + BALL_R > W - PADDLE_W &&
+            b.y > state.cpuY && b.y < state.cpuY + PADDLE_H) {
+            b.x = W - PADDLE_W - BALL_R;
+            bounce(b, state.cpuY, -1);
+        }
+
+        if (b.x < -BALL_R) { state.cpu++; point(); }
+        else if (b.x > W + BALL_R) { state.you++; point(); }
+    }
+
+    function draw() {
+        ctx.save();
+        ctx.scale(scale, scale);
+        ctx.clearRect(0, 0, W, H);
+        ctx.strokeStyle = '#1c2530';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([8, 12]);
+        ctx.beginPath();
+        ctx.moveTo(W / 2, 0); ctx.lineTo(W / 2, H);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = '#ccff00';
+        ctx.fillRect(0, state.youY, PADDLE_W, PADDLE_H);
+        ctx.fillStyle = '#FF004D';
+        ctx.fillRect(W - PADDLE_W, state.cpuY, PADDLE_W, PADDLE_H);
+        if (state.ball) {
+            ctx.fillStyle = '#e6edf3';
+            ctx.beginPath();
+            ctx.arc(state.ball.x, state.ball.y, BALL_R, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
+    }
+
+    function loop() {
+        if (!active) { rafId = null; return; }
+        if (state.running) step();
+        draw();
+        rafId = requestAnimationFrame(loop);
+    }
+
+    function resize() {
+        const maxW = Math.min(window.innerWidth - 24, 520);
+        let cw = maxW;
+        let ch = cw * (H / W);
+        const maxH = Math.max(160, window.innerHeight - 320);
+        if (ch > maxH) { ch = maxH; cw = ch * (W / H); }
+        scale = cw / W;
+        canvas.width = Math.round(cw);
+        canvas.height = Math.round(ch);
+        if (active) draw();
+    }
+
+    function startGame() {
+        overlay.classList.remove('show');
+        reset(true);
+        state.running = true;
+        pauseBtn.textContent = 'Pause';
+    }
+
+    function togglePause() {
+        if (state.over) return;
+        state.running = !state.running;
+        pauseBtn.textContent = state.running ? 'Pause' : 'Weiter';
+    }
+
+    function init() {
+        canvas = document.getElementById('pong-board');
+        ctx = canvas.getContext('2d');
+        diffSel = document.getElementById('pong-diff');
+        pauseBtn = document.getElementById('pong-pause');
+        resetBtn = document.getElementById('pong-reset');
+        overlay = document.getElementById('pong-overlay');
+        pTitle = document.getElementById('pong-ptitle');
+        pText = document.getElementById('pong-ptext');
+        startBtn = document.getElementById('pong-start');
+        youEl = document.getElementById('pong-you');
+        cpuEl = document.getElementById('pong-cpu');
+
+        canvas.addEventListener('mousemove', e => { if (state.running) setYouFromClientY(e.clientY); });
+        canvas.addEventListener('touchstart', e => {
+            e.preventDefault();
+            if (state.running) setYouFromClientY(e.touches[0].clientY);
+        }, { passive: false });
+        canvas.addEventListener('touchmove', e => {
+            e.preventDefault();
+            if (state.running) setYouFromClientY(e.touches[0].clientY);
+        }, { passive: false });
+
+        window.addEventListener('keydown', e => {
+            if (!active) return;
+            if (e.key === 'ArrowUp' || e.key === 'w') keyUp = true;
+            if (e.key === 'ArrowDown' || e.key === 's') keyDown = true;
+            if (e.key === ' ') { e.preventDefault(); togglePause(); }
+        });
+        window.addEventListener('keyup', e => {
+            if (e.key === 'ArrowUp' || e.key === 'w') keyUp = false;
+            if (e.key === 'ArrowDown' || e.key === 's') keyDown = false;
+        });
+
+        startBtn.addEventListener('click', startGame);
+        pauseBtn.addEventListener('click', togglePause);
+        resetBtn.addEventListener('click', () => {
+            reset(true);
+            state.running = true;
+            overlay.classList.remove('show');
+            pauseBtn.textContent = 'Pause';
+        });
+        diffSel.addEventListener('change', () => { if (!state.over) reset(false); });
+
+        reset(true);
+        inited = true;
+    }
+
+    function enter() {
+        active = true;
+        if (!inited) init();
+        resize();
+        if (!state.running && !state.over) {
+            pTitle.textContent = 'Pong';
+            pText.textContent = 'Erster auf 11 Punkte gewinnt.';
+            startBtn.textContent = 'Spielen';
+            overlay.classList.add('show');
+        }
+        if (!rafId) loop();
+    }
+
+    function leave() {
+        active = false;
+        state.running = false;
+        if (pauseBtn) pauseBtn.textContent = 'Weiter';
+        if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    }
+
+    window.addEventListener('resize', () => { if (active) resize(); });
+
+    return { enter, leave };
+})();
+window.PONG = PONG;
 
 // ── Service Worker: Registrierung + zuverlässige Updates ──────────────────────
 // Ohne diesen Block wird nie eine neue sw.js geladen – der alte Worker bleibt aktiv.
