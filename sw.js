@@ -1,4 +1,4 @@
-const CACHE = 'tippspiel-v2';
+const CACHE = 'tippspiel-v6';
 const STATIC = ['/manifest.json', '/icon-192.png', '/icon-512.png'];
 
 self.addEventListener('install', e => {
