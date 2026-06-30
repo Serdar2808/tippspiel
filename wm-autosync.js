@@ -11,8 +11,12 @@
  *   • Live-Stand landet in EIGENEN Feldern (liveA/liveB) – nie in der Wertung.
  *   • Heim/Gast-Reihenfolge wird pro Spiel über die TEAMNAMEN bestimmt
  *     → korrekt auch bei vertauschten Paarungen.
- *   • KO-Spiele (type='ko') werden beim Ergebnis-Eintrag vorerst übersprungen.
- *   • Ergebnis = ausschließlich Typ "Endergebnis" (resultTypeID 2).
+ *   • KO-Spiele: maßgeblich ist der Stand nach 90 Min – Nachspielzeit zählt,
+ *     Verlängerung/Elfmeter (isOvertime) NICHT. Ist das Spiel in regulärer Zeit
+ *     entschieden, wird direkt das Endergebnis übernommen.
+ *   • Gruppenspiele: Ergebnis = Typ "Endergebnis" (resultTypeID 2).
+ *   • Automatisch eingetragene Ergebnisse (autoEntered=1) dürfen vom Sync später
+ *     korrigiert werden; manuell eingetragene werden NIE überschrieben.
  *   • Live-Felder werden nur bei echter Änderung geschrieben → kein unnötiges
  *     Hochzählen des /api/version-Zählers.
  *
@@ -20,7 +24,7 @@
  * @param {object} opts  { leagueShortcut, season, live, pollSec, dryRun }
  */
 module.exports = function initWmAutoSync(deps, opts = {}) {
-    const { db, calcPoints, recalcAllUsers, sendPush, parseScore } = deps;
+    const { db, calcPoints, recalcAllUsers, sendPush, parseScore, notify } = deps;
     const LEAGUE  = opts.leagueShortcut || 'wm26';
     const SEASON  = opts.season || '2026';
     const LIVE    = opts.live === true;
@@ -66,6 +70,7 @@ module.exports = function initWmAutoSync(deps, opts = {}) {
             }
         };
         add('extId', 'INTEGER');
+        add('autoEntered', 'INTEGER DEFAULT 0');
         if (LIVE) { add('liveA', 'INTEGER'); add('liveB', 'INTEGER'); }
     }
 
@@ -107,23 +112,48 @@ module.exports = function initWmAutoSync(deps, opts = {}) {
     }
 
     // ── 90-Minuten-Stand aus den Tor-Events (nur für KO-Wertung) ─────────────
-    // Verlängerung/Elfmeter (matchMinute > 90) zählen NICHT. Gibt {s1,s2}
-    // bezogen auf team1/team2 der API zurück – oder null, wenn keine
-    // verlässliche Ableitung möglich ist (dann trägt der Admin manuell ein).
+    // Maßgeblich ist das isOvertime-Flag, NICHT die Spielminute: Nachspielzeit
+    // (z. B. 90+4) gehört zur regulären Zeit und zählt, nur echte Verlängerungs-
+    // tore (isOvertime === true) werden ausgeschlossen. Gibt {s1,s2} bezogen auf
+    // team1/team2 der API zurück – oder null, wenn keine verlässliche Ableitung
+    // möglich ist (dann trägt der Admin manuell ein).
     function ninetyMinScore(am) {
         const goals = Array.isArray(am.goals) ? am.goals : [];
-        const reg = goals.filter(x => x.matchMinute == null || x.matchMinute <= 90);
+        const reg = goals.filter(x => x.isOvertime !== true);
         if (!reg.length) {
             if (goals.length === 0) {
                 const end = (am.matchResults || []).find(r => r.resultTypeID === ENDERGEBNIS_TYPE_ID);
                 if (end && end.pointsTeam1 === 0 && end.pointsTeam2 === 0) return { s1: 0, s2: 0 };
                 return null; // beendet, aber keine Tordaten → nicht raten
             }
-            return { s1: 0, s2: 0 }; // Tore erst in der Verlängerung → 0:0 nach 90
+            return { s1: 0, s2: 0 }; // alle Tore erst in der Verlängerung → 0:0 nach 90
         }
         const last = reg[reg.length - 1];
         if (last.scoreTeam1 != null && last.scoreTeam2 != null) return { s1: last.scoreTeam1, s2: last.scoreTeam2 };
         return null;
+    }
+
+    // ── KO: maßgeblicher Stand für die Wertung (= Stand nach 90 Min) ─────────
+    // 1) Keine Verlängerung gespielt → in regulärer Zeit (inkl. Nachspielzeit)
+    //    entschieden → das Endergebnis IST der 90-Minuten-Stand (zuverlässig,
+    //    enthält Nachspielzeit-Tore). 2) Verlängerung gespielt → nur der Stand
+    //    bis Minute 90 zählt → aus den Nicht-Verlängerungs-Toren rekonstruiert.
+    // Gibt {s1,s2} (team1/team2 der API) zurück oder null → Admin trägt manuell ein.
+    function koRegulationScore(am) {
+        const goals = Array.isArray(am.goals) ? am.goals : [];
+        const hasOT = goals.some(g => g.isOvertime === true);
+        const reg   = ninetyMinScore(am);
+        const end   = (am.matchResults || []).find(r => r.resultTypeID === ENDERGEBNIS_TYPE_ID);
+        if (!hasOT) {
+            // In regulärer Zeit entschieden – Endergebnis bevorzugen (enthält Nachspielzeit).
+            if (end && end.pointsTeam1 !== end.pointsTeam2) return { s1: end.pointsTeam1, s2: end.pointsTeam2 };
+            if (reg && reg.s1 !== reg.s2) return reg;
+            // Kein Verlängerungs-Flag, aber Remis-Bild → unklar (evtl. Elfmeter
+            // ohne sauberes Flag) → lieber manuell eintragen lassen.
+            return null;
+        }
+        // Verlängerung gespielt → 90-Minuten-Stand (Remis) aus den regulären Toren.
+        return reg;
     }
 
     // ── 3) Endergebnis anwenden – spiegelt /api/admin/result ─────────────────
@@ -131,7 +161,7 @@ module.exports = function initWmAutoSync(deps, opts = {}) {
 
     async function applyResult(matchRow, pA, pB) {
         const tx = db.transaction(() => {
-            db.prepare('UPDATE matches SET resultA = ?, resultB = ?, finished = 1, liveA = NULL, liveB = NULL WHERE id = ?').run(pA, pB, matchRow.id);
+            db.prepare('UPDATE matches SET resultA = ?, resultB = ?, finished = 1, autoEntered = 1, liveA = NULL, liveB = NULL WHERE id = ?').run(pA, pB, matchRow.id);
             const tips = db.prepare('SELECT userId, tipA, tipB FROM tips WHERE matchId = ?').all(matchRow.id);
             const upd  = db.prepare('UPDATE tips SET points = ? WHERE matchId = ? AND userId = ?');
             for (const t of tips) upd.run(calcPoints(t.tipA, t.tipB, pA, pB), matchRow.id, t.userId);
@@ -142,7 +172,9 @@ module.exports = function initWmAutoSync(deps, opts = {}) {
         for (const u of users) {
             const tip = db.prepare('SELECT tipA, tipB, points FROM tips WHERE matchId = ? AND userId = ?').get(matchRow.id, u.id);
             const body = tip && tip.tipA !== null ? `${ptLabels[tip.points]} (Tipp: ${tip.tipA}:${tip.tipB})` : '⚪ Kein Tipp abgegeben';
-            await sendPush([u.id], `⚽ ${matchRow.teamA} ${pA}:${pB} ${matchRow.teamB}`, body, 'result');
+            const title = `⚽ ${matchRow.teamA} ${pA}:${pB} ${matchRow.teamB}`;
+            await sendPush([u.id], title, body, 'result');
+            if (typeof notify === 'function') notify([u.id], 'result', title, body, matchRow.id);
         }
     }
 
@@ -195,18 +227,21 @@ module.exports = function initWmAutoSync(deps, opts = {}) {
         for (const am of apiMatches) {
             if (!am.matchIsFinished) continue;
 
-            let m = db.prepare('SELECT id, type, teamA, teamB, finished FROM matches WHERE extId = ?').get(am.matchID);
-            if (!m) m = findDbMatch(am);
+            const COLS = 'id, type, teamA, teamB, finished, autoEntered, resultA, resultB';
+            let m = db.prepare(`SELECT ${COLS} FROM matches WHERE extId = ?`).get(am.matchID);
+            if (!m) { const fm = findDbMatch(am); if (fm) m = db.prepare(`SELECT ${COLS} FROM matches WHERE id = ?`).get(fm.id); }
             if (!m) continue;
-            if (m.finished === 1) continue;
+            // Manuell eingetragene Ergebnisse niemals überschreiben.
+            if (m.finished === 1 && m.autoEntered !== 1) continue;
 
             // Score je nach Spieltyp bestimmen.
             let pA, pB;
             if (m.type === 'ko') {
-                // KO: nur der Stand nach 90 Min zählt (Verlängerung/Elfmeter NICHT).
-                const ninety = ninetyMinScore(am);
-                if (!ninety) continue; // keine verwertbaren Tordaten → Admin trägt manuell ein
-                const o = orient(m, am, ninety.s1, ninety.s2);
+                // KO: maßgeblich ist der Stand nach 90 Min (Nachspielzeit zählt,
+                // Verlängerung/Elfmeter NICHT).
+                const reg = koRegulationScore(am);
+                if (!reg) continue; // keine verlässliche Ableitung → Admin trägt manuell ein
+                const o = orient(m, am, reg.s1, reg.s2);
                 if (!o) { console.warn(`${TAG} Reihenfolge unklar bei KO ${m.teamA} vs ${m.teamB} (extId ${am.matchID}) – übersprungen.`); continue; }
                 pA = parseScore(o[0]); pB = parseScore(o[1]);
             } else {
@@ -218,9 +253,13 @@ module.exports = function initWmAutoSync(deps, opts = {}) {
             }
             if (pA === undefined || pB === undefined || pA === null || pB === null) continue;
 
-            const label = m.type === 'ko' ? ' [KO/90Min]' : '';
-            if (DRY_RUN) console.log(`${TAG} [DRY-RUN] würde eintragen${label}: ${m.teamA} ${pA}:${pB} ${m.teamB} (extId ${am.matchID})`);
-            else { await applyResult(m, pA, pB); console.log(`${TAG} eingetragen${label}: ${m.teamA} ${pA}:${pB} ${m.teamB} (extId ${am.matchID})`); }
+            // Bereits automatisch eingetragen und unverändert → nichts zu tun.
+            if (m.finished === 1 && m.resultA === pA && m.resultB === pB) continue;
+
+            const correcting = m.finished === 1;
+            const label = (m.type === 'ko' ? ' [KO/90Min]' : '') + (correcting ? ' [Korrektur]' : '');
+            if (DRY_RUN) console.log(`${TAG} [DRY-RUN] würde ${correcting ? 'korrigieren' : 'eintragen'}${label}: ${m.teamA} ${pA}:${pB} ${m.teamB} (extId ${am.matchID})`);
+            else { await applyResult(m, pA, pB); console.log(`${TAG} ${correcting ? 'korrigiert' : 'eingetragen'}${label}: ${m.teamA} ${pA}:${pB} ${m.teamB} (extId ${am.matchID})`); }
             applied++;
         }
         if (applied && DRY_RUN) console.log(`${TAG} DRY-RUN: ${applied} Ergebnis(se) wären eingetragen worden.`);

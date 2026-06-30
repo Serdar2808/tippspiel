@@ -408,7 +408,7 @@ app.post('/api/admin/result', async (req, res) => {
 
 	if (resultA === "" || resultA === null || resultB === "" || resultB === null) {
         const clearResult = db.transaction(() => {
-            db.prepare('UPDATE matches SET resultA = NULL, resultB = NULL, finished = 0 WHERE id = ?').run(matchId);
+            db.prepare('UPDATE matches SET resultA = NULL, resultB = NULL, finished = 0, autoEntered = 0 WHERE id = ?').run(matchId);
             db.prepare('UPDATE tips SET points = 0 WHERE matchId = ?').run(matchId);
             recalcAllUsers.run();
         });
@@ -418,7 +418,7 @@ app.post('/api/admin/result', async (req, res) => {
         if (pA === undefined || pB === undefined) return res.status(400).json({ error: "Ungültiges Ergebnis" });
 
         const applyResults = db.transaction(() => {
-            db.prepare('UPDATE matches SET resultA = ?, resultB = ?, finished = 1 WHERE id = ?').run(pA, pB, matchId);
+            db.prepare('UPDATE matches SET resultA = ?, resultB = ?, finished = 1, autoEntered = 0 WHERE id = ?').run(pA, pB, matchId);
             const tips = db.prepare('SELECT userId, tipA, tipB FROM tips WHERE matchId = ?').all(matchId);
             const updateTipPoints = db.prepare('UPDATE tips SET points = ? WHERE matchId = ? AND userId = ?');
             for (const tip of tips) {
@@ -866,7 +866,7 @@ require('./wm-ko')({ app, db }, { adminPass: 'GEHEIM123' });
 
 // ── WM-2026 Auto-Sync (OpenLigaDB) ───────────────────────────────────────────
 require('./wm-autosync')(
-    { db, calcPoints, recalcAllUsers, sendPush, parseScore },
+    { db, calcPoints, recalcAllUsers, sendPush, parseScore, notify },
     { leagueShortcut: 'wm26', season: '2026', live: true, pollSec: 60, dryRun: true }
 );
 
