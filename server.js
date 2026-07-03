@@ -64,6 +64,11 @@ db.exec(`CREATE TABLE IF NOT EXISTS notifications (
 )`);
 db.exec('CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications (userId, createdAt)');
 
+// Live-Spielstand (manueller Fallback, falls Auto-Sync mal ausfällt)
+// wm-autosync fügt diese auch hinzu, aber so ist es robuster.
+try { db.exec('ALTER TABLE matches ADD COLUMN liveA INTEGER'); } catch (e) {}
+try { db.exec('ALTER TABLE matches ADD COLUMN liveB INTEGER'); } catch (e) {}
+
 // ── Punkte-Berechnung ─────────────────────────────────────────────────────────
 function calcPoints(tipA, tipB, resultA, resultB) {
     if (tipA === null || tipB === null) return 0;
@@ -418,7 +423,7 @@ app.post('/api/admin/result', async (req, res) => {
         if (pA === undefined || pB === undefined) return res.status(400).json({ error: "Ungültiges Ergebnis" });
 
         const applyResults = db.transaction(() => {
-            db.prepare('UPDATE matches SET resultA = ?, resultB = ?, finished = 1, autoEntered = 0 WHERE id = ?').run(pA, pB, matchId);
+            db.prepare('UPDATE matches SET resultA = ?, resultB = ?, finished = 1, autoEntered = 0, liveA = NULL, liveB = NULL WHERE id = ?').run(pA, pB, matchId);
             const tips = db.prepare('SELECT userId, tipA, tipB FROM tips WHERE matchId = ?').all(matchId);
             const updateTipPoints = db.prepare('UPDATE tips SET points = ? WHERE matchId = ? AND userId = ?');
             for (const tip of tips) {
@@ -441,6 +446,27 @@ app.post('/api/admin/result', async (req, res) => {
     }
     res.json({ success: true });
 });
+
+// ── Live-Stand manuell setzen (Fallback wenn Auto-Sync ausfällt) ──────────────
+app.post('/api/admin/live', (req, res) => {
+    const { matchId, liveA, liveB, adminPass } = req.body;
+    if (adminPass !== "GEHEIM123") return res.status(403).json({ error: "Falsches Admin-Passwort" });
+
+    const match = db.prepare('SELECT id FROM matches WHERE id = ?').get(matchId);
+    if (!match) return res.status(404).json({ error: "Spiel nicht gefunden" });
+
+    if (liveA === "" || liveA === null || liveB === "" || liveB === null) {
+        db.prepare('UPDATE matches SET liveA = NULL, liveB = NULL WHERE id = ?').run(matchId);
+        return res.json({ success: true, cleared: true });
+    }
+
+    const pA = parseScore(liveA), pB = parseScore(liveB);
+    if (pA === undefined || pB === undefined) return res.status(400).json({ error: "Ungültiger Live-Stand (0-30)" });
+
+    db.prepare('UPDATE matches SET liveA = ?, liveB = ? WHERE id = ?').run(pA, pB, matchId);
+    res.json({ success: true });
+});
+
 
 // ── Reaktionen ────────────────────────────────────────────────────────────────
 app.post('/api/reaction', async (req, res) => {
@@ -858,6 +884,53 @@ app.post('/api/einladung/register', (req, res) => {
     db.prepare('INSERT INTO users (id, name, token, points, exactTips, tendTips) VALUES (?, ?, ?, ?, ?, ?)').run(newUser.id, newUser.name, newUser.token, 0, 0, 0);
     
     res.json({ success: true, user: newUser });
+});
+
+// ── Mini-Games: Highscores ────────────────────────────────────────────────────
+db.exec(`CREATE TABLE IF NOT EXISTS game_scores (
+    userId    TEXT    NOT NULL,
+    game      TEXT    NOT NULL,
+    score     INTEGER NOT NULL DEFAULT 0,
+    updatedAt INTEGER NOT NULL,
+    PRIMARY KEY (userId, game)
+)`);
+
+const GAME_KEYS = ['dino', 'penalty', 'snake', '2048', 'memory'];
+const SCORE_MAX = 10000000;
+
+// Score melden – speichert nur, wenn er den bisherigen Bestwert übertrifft
+app.post('/api/game/score', (req, res) => {
+    const { token, game, score } = req.body;
+    const user = db.prepare('SELECT id FROM users WHERE token = ?').get(token);
+    if (!user) return res.status(403).json({ error: 'Kein Zugriff' });
+    if (!GAME_KEYS.includes(game)) return res.status(400).json({ error: 'Unbekanntes Spiel' });
+
+    const sc = Math.floor(Number(score));
+    if (!Number.isFinite(sc) || sc < 0 || sc > SCORE_MAX) return res.status(400).json({ error: 'Ungültiger Score' });
+
+    const now = Date.now();
+    const prev = db.prepare('SELECT score FROM game_scores WHERE userId = ? AND game = ?').get(user.id, game);
+    let best = sc, improved = false;
+    if (!prev) {
+        db.prepare('INSERT INTO game_scores (userId, game, score, updatedAt) VALUES (?, ?, ?, ?)').run(user.id, game, sc, now);
+        improved = true;
+    } else if (sc > prev.score) {
+        db.prepare('UPDATE game_scores SET score = ?, updatedAt = ? WHERE userId = ? AND game = ?').run(sc, now, user.id, game);
+        improved = true;
+    } else {
+        best = prev.score;
+    }
+    res.json({ success: true, best, improved });
+});
+
+// Rangliste aller Spiele (mit Usernamen)
+app.get('/api/game/scores', (req, res) => {
+    const rows = db.prepare(`
+        SELECT gs.userId, gs.game, gs.score, gs.updatedAt, u.name
+        FROM game_scores gs JOIN users u ON u.id = gs.userId
+        ORDER BY gs.game ASC, gs.score DESC, gs.updatedAt ASC
+    `).all();
+    res.json({ scores: rows });
 });
 
 // ── WM-2026 KO-Phasen-Engine (Platzierung → Bracket-Zuordnung) ────────────────

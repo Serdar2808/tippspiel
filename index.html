@@ -853,7 +853,7 @@ function computeAchievements(data, userId) {
     const ko=finished.filter(m=>m.type==='ko');
     if(ko.length>=4){
         const hits=tips.filter(t=>ko.find(m=>m.id===t.matchId)&&t.points>0).length;
-        if(hits/ko.length>=.6) badges.push({icon:'🏆',label:'KO-Spezialist',desc:`${hits}/${ko.length} KO richtig`});
+        if(hits/ko.length>=.7) badges.push({icon:'🏆',label:'KO-Spezialist',desc:`${hits}/${ko.length} KO richtig`});
     }
     return badges;
 }
