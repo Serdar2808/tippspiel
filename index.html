@@ -93,6 +93,7 @@
         .ko-row{display:flex;justify-content:space-between;align-items:center;gap:6px;padding:2px 0;font-size:12px;}
         .ko-row.win .ko-team{font-weight:800;color:var(--text);}
         .ko-row.lose{opacity:.45;}
+        .ko-row.lose .ko-team{text-decoration:line-through;}
         .ko-team{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text);}
         .ko-score{font-weight:800;min-width:14px;text-align:right;color:var(--text);}
         .ko-tba{color:var(--text-muted);font-style:italic;}
@@ -1233,9 +1234,13 @@ async function submitResult(matchId) {
     const resB=document.getElementById('admin-resB-'+matchId).value;
     const teamA=document.getElementById('admin-teamA-'+matchId).value;
     const teamB=document.getElementById('admin-teamB-'+matchId).value;
+    const etAEl=document.getElementById('admin-etA-'+matchId), etBEl=document.getElementById('admin-etB-'+matchId);
+    const penAEl=document.getElementById('admin-penA-'+matchId), penBEl=document.getElementById('admin-penB-'+matchId);
+    const body={matchId,resultA:resA,resultB:resB,teamA,teamB,adminPass:urlAdminPass};
+    if(etAEl){ body.etA=etAEl.value; body.etB=etBEl.value; body.penA=penAEl.value; body.penB=penBEl.value; }
     try {
         const r=await fetch('/api/admin/result',{method:'POST',headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({matchId,resultA:resA,resultB:resB,teamA,teamB,adminPass:urlAdminPass})});
+            body:JSON.stringify(body)});
         const d=await r.json();
         if(r.ok){showToast(resA===''?'Ergebnis zurückgesetzt.':`${resA}:${resB} gespeichert ✓`);await refreshData();}
         else showToast('Fehler: '+(d.error||'Ungültig'),'error');
@@ -2023,12 +2028,28 @@ function koCard(m){
     const live = !m.finished && m.liveA!=null && m.liveB!=null;
     const sA = m.finished ? m.resultA : (live ? m.liveA : null);
     const sB = m.finished ? m.resultB : (live ? m.liveB : null);
-    const winA = m.finished && m.resultA>m.resultB, winB = m.finished && m.resultB>m.resultA;
+    // Sieger-Ermittlung, in Prioritätsreihenfolge:
+    // 1) Admin-gewählter Aufsteiger (ko_advancers – z.B. über den KO-Tab gesetzt)
+    // 2) Elfmeterschießen  3) Verlängerung  4) reguläre 90 Minuten.
+    // So wird der Sieger erkannt, egal über welchen Admin-Weg er hinterlegt wurde.
+    let winA=false, winB=false;
+    if(m.finished){
+        if(m.advancer && (m.advancer===m.teamA || m.advancer===m.teamB)){
+            winA = m.advancer===m.teamA; winB = !winA;
+        } else if(m.penA!=null && m.penB!=null && m.penA!==m.penB){ winA=m.penA>m.penB; winB=!winA; }
+        else if(m.etA!=null && m.etB!=null && m.etA!==m.etB){ winA=m.etA>m.etB; winB=!winA; }
+        else if(m.resultA!=null && m.resultB!=null && m.resultA!==m.resultB){ winA=m.resultA>m.resultB; winB=!winA; }
+    }
     const cell=(name,tba)=> tba ? '<span class="ko-team ko-tba">offen</span>' : `<span class="ko-team">${f(name)} ${dn(name)}</span>`;
     const row=(name,tba,score,win,lose)=>`<div class="ko-row${win?' win':''}${lose?' lose':''}">${cell(name,tba)}<span class="ko-score">${score!=null?score:''}</span></div>`;
     let meta;
     if(tbaA||tbaB) meta='⏳ Teams offen';
-    else if(m.finished) meta = (m.resultA===m.resultB) ? 'Endstand (i.E.)' : 'Endstand';
+    else if(m.finished){
+        if(m.penA!=null && m.penB!=null) meta = `n.V. ${m.etA}:${m.etB} · i.E. ${m.penA}:${m.penB}`;
+        else if(m.etA!=null && m.etB!=null) meta = `Endstand n.V. ${m.etA}:${m.etB}`;
+        else if(m.resultA===m.resultB && winA!==winB) meta = 'Nach Verlängerung/Elfmeterschießen entschieden';
+        else meta = (m.resultA===m.resultB) ? 'Endstand (Remis)' : 'Endstand';
+    }
     else if(live) meta='🔴 LIVE';
     else meta=brFmt(m.kickoff);
     return `<div class="ko-card${live?' live':''}">
@@ -2429,6 +2450,25 @@ function renderAdmin(matches,users) {
                     <button class="btn-primary" onclick="submitResult('${m.id}')">Speichern</button>
                 </div>
             </div>
+            ${m.type==='ko' ? `
+            <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">
+                <div style="font-size:10px;color:var(--text-muted);font-weight:700;text-transform:uppercase;margin-bottom:4px;">Nur falls nach 90 Min. unentschieden: n.V. / i.E.</div>
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                    <div style="display:flex;align-items:center;gap:4px;">
+                        <span style="font-size:11px;color:var(--text-muted);">n.V.</span>
+                        <input type="number" inputmode="numeric" pattern="[0-9]*" id="admin-etA-${m.id}" value="${m.etA!==null&&m.etA!==undefined?m.etA:''}" style="width:34px;height:32px;font-size:14px;">
+                        <span style="color:var(--text-muted);">:</span>
+                        <input type="number" inputmode="numeric" pattern="[0-9]*" id="admin-etB-${m.id}" value="${m.etB!==null&&m.etB!==undefined?m.etB:''}" style="width:34px;height:32px;font-size:14px;">
+                    </div>
+                    <div style="display:flex;align-items:center;gap:4px;">
+                        <span style="font-size:11px;color:var(--text-muted);">i.E.</span>
+                        <input type="number" inputmode="numeric" pattern="[0-9]*" id="admin-penA-${m.id}" value="${m.penA!==null&&m.penA!==undefined?m.penA:''}" style="width:34px;height:32px;font-size:14px;">
+                        <span style="color:var(--text-muted);">:</span>
+                        <input type="number" inputmode="numeric" pattern="[0-9]*" id="admin-penB-${m.id}" value="${m.penB!==null&&m.penB!==undefined?m.penB:''}" style="width:34px;height:32px;font-size:14px;">
+                    </div>
+                </div>
+                <p style="font-size:11px;color:var(--text-muted);margin:6px 0 0;">Oben bleibt der 90-Min-Stand für die Tipp-Wertung. n.V./i.E. bestimmen nur, wer im Turnierbaum weiterkommt.</p>
+            </div>` : ''}
         </div>`;
     }).join('');
     renderAdminTips(globalData);

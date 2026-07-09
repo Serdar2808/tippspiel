@@ -69,6 +69,18 @@ db.exec('CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications (use
 try { db.exec('ALTER TABLE matches ADD COLUMN liveA INTEGER'); } catch (e) {}
 try { db.exec('ALTER TABLE matches ADD COLUMN liveB INTEGER'); } catch (e) {}
 
+// KO-Spiele, die nach Verlängerung/Elfmeterschießen entschieden wurden:
+// resultA/resultB bleiben IMMER der 90-Minuten-Stand (zählt für die Tipp-Wertung).
+// etA/etB = Stand nach Verlängerung, penA/penB = Elfmeterschießen-Stand.
+// Beide sind nur gesetzt, wenn das jeweilige Stadium tatsächlich gespielt wurde.
+try { db.exec('ALTER TABLE matches ADD COLUMN etA INTEGER'); } catch (e) {}
+try { db.exec('ALTER TABLE matches ADD COLUMN etB INTEGER'); } catch (e) {}
+try { db.exec('ALTER TABLE matches ADD COLUMN penA INTEGER'); } catch (e) {}
+try { db.exec('ALTER TABLE matches ADD COLUMN penB INTEGER'); } catch (e) {}
+// ko_advancers wird auch von wm-ko.js angelegt (für die Bracket-Propagation bei
+// KO-Remis). Hier defensiv nochmal, falls die Reihenfolge sich mal ändert.
+db.exec(`CREATE TABLE IF NOT EXISTS ko_advancers (matchId TEXT PRIMARY KEY, advancer TEXT NOT NULL)`);
+
 // ── Punkte-Berechnung ─────────────────────────────────────────────────────────
 function calcPoints(tipA, tipB, resultA, resultB) {
     if (tipA === null || tipB === null) return 0;
@@ -233,9 +245,15 @@ app.get('/api/daten', (req, res) => {
     }
 
     const matches = db.prepare(
-        'SELECT id, type, group_name AS "group", teamA, teamB, kickoff, resultA, resultB, finished, liveA, liveB FROM matches'
+        'SELECT id, type, group_name AS "group", teamA, teamB, kickoff, resultA, resultB, finished, liveA, liveB, etA, etB, penA, penB FROM matches'
     ).all();
     matches.forEach(m => m.finished = m.finished === 1); // Boolean fix fürs Frontend
+    // Admin-gewählter Aufsteiger bei KO-Remis (aus dem KO-Tab ODER den n.V./i.E.-Feldern
+    // oben gesetzt) mit ausliefern, damit der Turnierbaum den Sieger auch dann kennt,
+    // wenn kein etA/etB/penA/penB hinterlegt wurde.
+    const advancerMap = {};
+    db.prepare('SELECT matchId, advancer FROM ko_advancers').all().forEach(r => { advancerMap[r.matchId] = r.advancer; });
+    matches.forEach(m => { m.advancer = advancerMap[m.id] || null; });
 
     // Fremde Tokens nicht an normale Spieler ausliefern (verhindert Impersonation)
     const users = db.prepare('SELECT id, name, token, points, exactTips, tendTips FROM users').all();
@@ -401,8 +419,13 @@ app.delete('/api/admin/user/:id', (req, res) => {
 });
 
 // ── Ergebnis eintragen ────────────────────────────────────────────────────────
+// Für KO-Spiele, die nach 90 Minuten unentschieden stehen, können zusätzlich
+// etA/etB (Stand nach Verlängerung) und penA/penB (Elfmeterschießen) mitgeschickt
+// werden. resultA/resultB bleiben dabei immer der 90-Minuten-Stand (Tipp-Wertung).
+// Der so ermittelte Sieger wird zusätzlich in ko_advancers gespiegelt, damit die
+// Bracket-Propagation (wm-ko.js) den KO-Baum automatisch weiterschreiben kann.
 app.post('/api/admin/result', async (req, res) => {
-    const { matchId, resultA, resultB, teamA, teamB, adminPass } = req.body;
+    const { matchId, resultA, resultB, teamA, teamB, adminPass, etA, etB, penA, penB } = req.body;
     if (adminPass !== "GEHEIM123") return res.status(403).json({ error: "Falsches Admin-Passwort" });
 
     const match = db.prepare('SELECT * FROM matches WHERE id = ?').get(matchId);
@@ -410,11 +433,18 @@ app.post('/api/admin/result', async (req, res) => {
 
     if (teamA !== undefined && teamA !== null) db.prepare('UPDATE matches SET teamA = ? WHERE id = ?').run(teamA, matchId);
     if (teamB !== undefined && teamB !== null) db.prepare('UPDATE matches SET teamB = ? WHERE id = ?').run(teamB, matchId);
+    const finalTeamA = (teamA !== undefined && teamA !== null && teamA !== '') ? teamA : match.teamA;
+    const finalTeamB = (teamB !== undefined && teamB !== null && teamB !== '') ? teamB : match.teamB;
+
+    const clearAdvancer  = db.prepare('DELETE FROM ko_advancers WHERE matchId = ?');
+    const upsertAdvancer = db.prepare(`INSERT INTO ko_advancers (matchId, advancer) VALUES (?, ?)
+        ON CONFLICT(matchId) DO UPDATE SET advancer = excluded.advancer`);
 
 	if (resultA === "" || resultA === null || resultB === "" || resultB === null) {
         const clearResult = db.transaction(() => {
-            db.prepare('UPDATE matches SET resultA = NULL, resultB = NULL, finished = 0, autoEntered = 0 WHERE id = ?').run(matchId);
+            db.prepare('UPDATE matches SET resultA = NULL, resultB = NULL, finished = 0, autoEntered = 0, etA = NULL, etB = NULL, penA = NULL, penB = NULL WHERE id = ?').run(matchId);
             db.prepare('UPDATE tips SET points = 0 WHERE matchId = ?').run(matchId);
+            clearAdvancer.run(matchId);
             recalcAllUsers.run();
         });
         clearResult();
@@ -422,13 +452,33 @@ app.post('/api/admin/result', async (req, res) => {
         const pA = parseScore(resultA), pB = parseScore(resultB);
         if (pA === undefined || pB === undefined) return res.status(400).json({ error: "Ungültiges Ergebnis" });
 
+        // Verlängerung/Elfmeterschießen nur relevant für KO-Spiele, die nach 90 Min. unentschieden stehen
+        let finalEtA = null, finalEtB = null, finalPenA = null, finalPenB = null, winner = null;
+        if (match.type === 'ko' && pA === pB) {
+            const pEtA = parseScore(etA), pEtB = parseScore(etB);
+            const pPenA = parseScore(penA), pPenB = parseScore(penB);
+            if (pEtA === undefined || pEtB === undefined || pPenA === undefined || pPenB === undefined)
+                return res.status(400).json({ error: "Ungültiger Verlängerungs-/Elfmeter-Stand" });
+            if (pEtA !== null && pEtB !== null) {
+                finalEtA = pEtA; finalEtB = pEtB;
+                if (pEtA !== pEtB) {
+                    winner = pEtA > pEtB ? finalTeamA : finalTeamB;
+                } else if (pPenA !== null && pPenB !== null && pPenA !== pPenB) {
+                    finalPenA = pPenA; finalPenB = pPenB;
+                    winner = pPenA > pPenB ? finalTeamA : finalTeamB;
+                }
+            }
+        }
+
         const applyResults = db.transaction(() => {
-            db.prepare('UPDATE matches SET resultA = ?, resultB = ?, finished = 1, autoEntered = 0, liveA = NULL, liveB = NULL WHERE id = ?').run(pA, pB, matchId);
+            db.prepare('UPDATE matches SET resultA = ?, resultB = ?, finished = 1, autoEntered = 0, liveA = NULL, liveB = NULL, etA = ?, etB = ?, penA = ?, penB = ? WHERE id = ?')
+                .run(pA, pB, finalEtA, finalEtB, finalPenA, finalPenB, matchId);
             const tips = db.prepare('SELECT userId, tipA, tipB FROM tips WHERE matchId = ?').all(matchId);
             const updateTipPoints = db.prepare('UPDATE tips SET points = ? WHERE matchId = ? AND userId = ?');
             for (const tip of tips) {
                 updateTipPoints.run(calcPoints(tip.tipA, tip.tipB, pA, pB), matchId, tip.userId);
             }
+            if (winner) upsertAdvancer.run(matchId, winner); else clearAdvancer.run(matchId);
             recalcAllUsers.run();
         });
         applyResults();

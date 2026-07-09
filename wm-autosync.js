@@ -153,6 +153,16 @@ module.exports = function initWmAutoSync(deps, opts = {}) {
             return null;
         }
         // Verlängerung gespielt → 90-Minuten-Stand (Remis) aus den regulären Toren.
+        // Plausibilitätscheck: Wurde tatsächlich verlängert, MUSS der 90-Minuten-
+        // Stand ein Unentschieden sein (sonst hätte es gar keine Verlängerung
+        // gebraucht). Ist die Rekonstruktion trotz hasOT=true entschieden, hat
+        // OpenLigaDB vermutlich ein reguläres Nachspielzeit-Tor fälschlich mit
+        // isOvertime=true markiert – dann NICHT automatisch übernehmen, sondern
+        // manuell prüfen lassen, statt einen falschen Stand einzutragen.
+        if (reg && reg.s1 !== reg.s2) {
+            console.warn(`${TAG} Inkonsistenz bei KO-Spiel (extId ${am.matchID}): Verlängerung/Elfmeter markiert, aber 90-Min-Rekonstruktion ist entschieden (${reg.s1}:${reg.s2}) statt Remis. Vermutlich falsches isOvertime-Flag bei OpenLigaDB – bitte manuell eintragen. Tore: ${JSON.stringify(goals.map(g => ({ min: g.matchMinute, ot: g.isOvertime, s1: g.scoreTeam1, s2: g.scoreTeam2 })))}`);
+            return null;
+        }
         return reg;
     }
 
