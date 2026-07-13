@@ -1595,6 +1595,18 @@ function renderRankings(data) {
     const officialRank={}; official.forEach((u,i)=>officialRank[u.id]=i);
     const sorted = (rankingLive&&hasLive) ? rank(true) : official;
 
+    // Trefferquote (Anteil Tipps mit ≥1 Punkt) je Spieler + eigener Rang – zeigt sichtbar,
+    // dass man dank Exakt-Treffern (3P) auch mit niedrigerer Quote vorne stehen kann.
+    const hrStats = data.users.map(u=>{
+        const scored = data.tips.filter(t=>t.userId===u.id&&phaseMatchIds.has(t.matchId)&&t.tipA!=null&&matchById[t.matchId]&&matchById[t.matchId].finished);
+        const hits = scored.filter(t=>(t.points||0)>=1).length;
+        return { id:u.id, hits, total:scored.length, rate: scored.length?hits/scored.length:-1 };
+    });
+    const hrRanked = [...hrStats].filter(h=>h.total>0).sort((a,b)=>b.rate-a.rate||b.total-a.total);
+    const hrRank={}; hrRanked.forEach((h,idx)=>hrRank[h.id]=idx+1);
+    const hrById=Object.fromEntries(hrStats.map(h=>[h.id,h]));
+    const hrN = hrRanked.length;
+
     // Gewinnbeträge laut Regeln (Topf 600 €). Bei echtem Gleichstand werden die
     // Preisgelder der betroffenen Plätze zusammengelegt und zu gleichen Teilen geteilt.
     const PRIZES=[180,108,72,54,48,42,36,30,18,12];
@@ -1631,6 +1643,14 @@ function renderRankings(data) {
                     :d<0?`<span style="color:var(--accent);font-size:11px;font-weight:700;">▼${-d}</span>`
                     :`<span style="color:var(--text-muted);font-size:11px;">–</span>`;
             }
+            // Quote-Rang: Platzierung nur nach Trefferquote (unabhängig vom Punkte-Rang oben).
+            // pointsRank = Platz in DIESER Rangliste (i+1); Differenz zeigt, wie stark Exakt-Treffer den Platz nach oben ziehen.
+            const hr=hrById[u.id];
+            const hrRankVal = hr&&hr.total>0 ? hrRank[u.id] : null;
+            const hrPct = hr&&hr.total>0 ? Math.round(hr.rate*100) : null;
+            const hrHtml = hrPct!=null ? `<div style="font-size:11px;color:var(--text-muted);margin-top:5px;">
+                    🎯 Trefferquote <b style="color:var(--text)">${hrPct}%</b> <span style="opacity:.75;">(Quote-Rang ${hrRankVal}/${hrN})</span>
+                </div>` : '';
             return `<div class="card" onclick="showUserTips('${u.id}')" style="cursor:pointer;${isMe?'border-color:var(--accent-green);':''}">
                 <div style="display:flex;align-items:center;gap:8px;">
                     <span style="flex-shrink:0;min-width:42px;text-align:center;line-height:1.1;">
@@ -1644,7 +1664,7 @@ function renderRankings(data) {
                         <span title="Tendenz">📈<b style="color:#fb923c">${u.pTend}</b></span>
                     </span>
                     <span style="flex-shrink:0;margin-left:2px;"><b style="color:var(--accent-green);font-size:20px;">${u.pPts}</b></span>
-                </div>${badgeHtml}</div>`;
+                </div>${hrHtml}${badgeHtml}</div>`;
         }).join('');
     document.getElementById('rankings-list').innerHTML = phaseBar + mdBar + liveToggle + cards;
 }
