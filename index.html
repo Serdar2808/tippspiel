@@ -347,6 +347,21 @@
             display: none; position: fixed; top: 50%; left: 50%; 
             transform: translate(-50%, -50%); z-index: 1000;
         }
+
+        /* --- CSS FÜR WM-QUIZ --- */
+        .quiz-timerbar-wrap { background:var(--border);border-radius:6px;height:8px;overflow:hidden;margin:10px 0; }
+        .quiz-timerbar { height:100%;width:100%;background:var(--accent-green);transition:width .15s linear,background .3s; }
+        .quiz-timerbar.warn { background:#fb923c; }
+        .quiz-timerbar.danger { background:var(--accent); }
+        .quiz-qmeta { display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);
+            margin-bottom:2px;text-transform:uppercase;letter-spacing:.5px;font-weight:700; }
+        .quiz-option { display:block;width:100%;text-align:left;background:var(--card-bg2);color:var(--text);
+            border:2px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;
+            font-size:14px;font-weight:600;cursor:pointer;height:auto;white-space:normal;line-height:1.4; }
+        .quiz-option:hover:not(:disabled) { border-color:var(--accent-green); }
+        .quiz-option.correct { background:rgba(204,255,0,.18);border-color:var(--accent-green);color:var(--accent-green); }
+        .quiz-option.wrong { background:rgba(255,0,77,.15);border-color:var(--accent);color:var(--accent); }
+        .quiz-option:disabled { cursor:default;opacity:.85; }
     </style>
 </head>
 <body>
@@ -727,6 +742,25 @@
     </div>
 </div>
 
+<!-- QUIZ TAB -->
+<div id="tab-quiz" class="tab-content">
+    <h2 class="page-title">🧠 WM-Quiz</h2>
+    <div id="quiz-intro" class="card">
+        <p style="color:var(--text-muted);font-size:13px;margin-top:0;">
+            15 Fragen rund um die Geschichte der Fußball-Weltmeisterschaft. Ab dem Öffnen einer Frage hast du
+            <b>15 Sekunden</b> Zeit zum Antworten. Jede Frage kann nur <b>einmal</b> beantwortet werden – also überlegt tippen!
+        </p>
+        <div id="quiz-progress-info" style="font-size:13px;color:var(--text-muted);margin-bottom:10px;">Lade…</div>
+        <button class="btn-primary" style="width:100%;" onclick="QUIZ.start()">▶️ Quiz starten</button>
+    </div>
+    <div id="quiz-question-card" class="card" style="display:none;"></div>
+    <div id="quiz-result-card" class="card" style="display:none;"></div>
+    <div class="card">
+        <h3>🏆 Quiz-Rangliste</h3>
+        <div id="quiz-leaderboard">Lade...</div>
+    </div>
+</div>
+
 <!-- ADMIN TAB -->
 <div id="tab-admin" class="tab-content">
     <h2 class="page-title">⚙️ Admin</h2>
@@ -807,6 +841,7 @@
     <button onclick="switchTab('tab-bracket')" id="btn-bracket">🌳<br>Baum</button>
     <button onclick="switchTab('tab-rankings')" id="btn-rankings">🏆<br>Rangliste</button>
     <button onclick="switchTab('tab-stats')" id="btn-stats">📈<br>Stats</button>
+    <button onclick="switchTab('tab-quiz')" id="btn-quiz">🧠<br>Quiz</button>
     <button onclick="switchTab('tab-wrapped')" id="btn-wrapped">🎁<br>Wrapped</button>
     <button onclick="switchTab('tab-games')" id="btn-games">🎮<br>Games</button>
 </nav>
@@ -994,6 +1029,9 @@ function switchTab(id) {
     // Tab-spezifische Logik ausführen
     if (id === 'tab-wrapped') {
         renderWrapped(); // Holt & rendert die "Wrapped"-Daten
+    }
+    if (id === 'tab-quiz') {
+        QUIZ.enter();
     }
     // Für alle anderen Tabs werden die Daten durch den Hintergrund-Poller (checkForUpdates)
     // effizient aktualisiert. Ein erzwungener Refresh bei jedem Tab-Wechsel ist nicht nötig
@@ -1299,6 +1337,25 @@ async function deleteUser(userId,userName) {
         if(r.ok){showToast(`"${userName}" gelöscht.`);await refreshData();}
         else showToast('Fehler: '+(d.error||'Unbekannt'),'error');
     } catch{showToast('Netzwerkfehler','error');}
+}
+async function resetQuiz(userId, userName) {
+    if(!confirm(`Quiz-Fortschritt für "${userName}" wirklich zurücksetzen? Alle Antworten und Punkte für das Quiz gehen verloren.`)) return;
+    try {
+        const r = await fetch('/api/admin/quiz/reset', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ userId, adminPass: urlAdminPass })
+        });
+        const d = await r.json();
+        if (r.ok) {
+            showToast(`Quiz für "${userName}" zurückgesetzt.`);
+            await refreshData();
+        } else {
+            showToast('Fehler: ' + (d.error || 'Unbekannt'), 'error');
+        }
+    } catch {
+        showToast('Netzwerkfehler', 'error');
+    }
 }
 
 // ── Ergebnis speichern ────────────────────────────────────────────────────────
@@ -2451,7 +2508,12 @@ async function updateH2H() {
                     <div style="font-size:30px;font-weight:900;color:var(--accent);">${wB}</div>
                     <div style="font-size:11px;color:var(--text-muted);">Siege</div>
                     <div style="font-size:18px;font-weight:700;color:var(--accent);margin-top:6px;">${pB}P</div></div>
-            </div>`;
+            </div>
+            ${finishedMatches.length?`<div style="max-height:280px;overflow-y:auto;border-radius:8px;border:1px solid var(--border);">
+                <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:4px;padding:6px 2px;background:var(--card-bg2);">
+                    <span style="font-size:11px;font-weight:700;color:var(--accent-green);text-align:center;">${uA.name}</span><span></span>
+                    <span style="font-size:11px;font-weight:700;color:var(--accent);text-align:center;">${uB.name}</span></div></div>`
+                :'<p style="color:var(--text-muted);text-align:center;">Noch keine Spiele beendet.</p>'}`;
 
     } catch (e) {
         console.error("Error fetching or rendering H2H chart:", e);
@@ -2463,6 +2525,180 @@ async function updateH2H() {
     }
 }
 
+// ── WM-Quiz ─────────────────────────────────────────────────────────────────
+// Async, im eigenen Tempo je User. Der Server ist die einzige Quelle der
+// Wahrheit für Timing (openedAt) und Korrektheit (correctIndex) – der Client
+// zeigt nur einen visuellen 15s-Countdown und übermittelt die Antwort.
+const QUIZ = (function () {
+    let questions = [], answeredMap = {}, order = [], curIdx = -1;
+    let timerInterval = null, locked = false;
+
+    async function loadState() {
+        if (!myToken) return;
+        try {
+            const r = await fetch(`/api/quiz/questions?token=${myToken}`);
+            if (!r.ok) return;
+            const d = await r.json();
+            questions = d.questions || [];
+            answeredMap = d.answered || {};
+            renderIntro();
+        } catch (e) {}
+    }
+
+    function unansweredIds() { return questions.filter(q => !answeredMap[q.id]).map(q => q.id); }
+    function findQuestion(id) { return questions.find(q => q.id === id); }
+
+    function renderIntro() {
+        const el = document.getElementById('quiz-progress-info');
+        const btn = document.querySelector('#quiz-intro button');
+        if (!el) return;
+        const total = questions.length, answered = Object.keys(answeredMap).length;
+        const correct = Object.values(answeredMap).filter(a => a.correct).length;
+        if (!total) { el.textContent = 'Lade Fragen…'; return; }
+        if (answered >= total) {
+            el.innerHTML = `Du hast alle ${total} Fragen beantwortet — <b style="color:var(--accent-green)">${correct}/${total}</b> richtig! 🎉`;
+            if (btn) btn.textContent = '✅ Ergebnis & Rangliste ansehen';
+        } else {
+            el.innerHTML = `Fortschritt: <b style="color:var(--accent-green)">${answered}/${total}</b> beantwortet (${correct} richtig).`;
+            if (btn) btn.textContent = answered > 0 ? '▶️ Weiterspielen' : '▶️ Quiz starten';
+        }
+        document.getElementById('quiz-question-card').style.display = 'none';
+    }
+
+    function start() {
+        if (!myToken) { showToast('Nur für angemeldete User', 'error'); return; }
+        const remaining = unansweredIds();
+        if (!remaining.length) { showResult(); return; }
+        order = remaining;
+        curIdx = 0;
+        document.getElementById('quiz-result-card').style.display = 'none';
+        showQuestion(order[curIdx]);
+    }
+
+    async function showQuestion(id) {
+        const q = findQuestion(id);
+        if (!q) { showResult(); return; }
+        locked = false;
+        document.getElementById('quiz-intro').style.display = 'none';
+        const card = document.getElementById('quiz-question-card');
+        card.style.display = 'block';
+        card.innerHTML = `
+            <div class="quiz-qmeta"><span>Frage ${curIdx + 1}/${order.length}</span><span id="quiz-timer-num">15s</span></div>
+            <div class="quiz-timerbar-wrap"><div class="quiz-timerbar" id="quiz-timerbar"></div></div>
+            <div style="font-size:16px;font-weight:700;margin:10px 0 14px;">${q.text}</div>
+            <div id="quiz-options">${q.options.map((o, i) => `<button class="quiz-option" onclick="QUIZ.answer(${i})">${o}</button>`).join('')}</div>
+        `;
+        try {
+            const r = await fetch('/api/quiz/open', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: myToken, questionId: id })
+            });
+            const d = await r.json();
+            if (d.alreadyAnswered) { next(); return; }
+        } catch (e) { /* ignore network errors, timer will start anyway */ }
+        startTimer();
+    }
+
+    function startTimer() {
+        clearInterval(timerInterval);
+        const LIMIT = 15000;
+        const localEndTime = Date.now() + LIMIT;
+
+        timerInterval = setInterval(() => {
+            const remain = Math.max(0, localEndTime - Date.now());
+            const pct = Math.max(0, (remain / LIMIT) * 100);
+            const bar = document.getElementById('quiz-timerbar');
+            const num = document.getElementById('quiz-timer-num');
+            if (bar) { bar.style.width = pct + '%'; bar.className = 'quiz-timerbar' + (pct < 20 ? ' danger' : pct < 50 ? ' warn' : ''); }
+            if (num) num.textContent = Math.ceil(remain / 1000) + 's';
+            if (remain <= 0) { clearInterval(timerInterval); answer(-1, true); }
+        }, 150);
+    }
+
+    async function answer(idx, timedOut) {
+        if (locked) return;
+        locked = true;
+        clearInterval(timerInterval);
+        const id = order[curIdx];
+        const q = findQuestion(id);
+        const buttons = document.querySelectorAll('#quiz-options .quiz-option');
+        buttons.forEach(b => b.disabled = true);
+
+        let result = { correct: false, correctIndex: q ? q.correctIndex : -1 };
+        try {
+            const r = await fetch('/api/quiz/answer', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: myToken, questionId: id, answerIndex: idx })
+            });
+            const d = await r.json();
+            if (r.ok) result = d;
+        } catch (e) {}
+
+        if (idx >= 0 && buttons[idx]) buttons[idx].classList.add(result.correct ? 'correct' : 'wrong');
+        if (result.correctIndex >= 0 && buttons[result.correctIndex]) buttons[result.correctIndex].classList.add('correct');
+        answeredMap[id] = { answerIndex: idx, correct: result.correct };
+
+        const num = document.getElementById('quiz-timer-num');
+        if (num) num.textContent = timedOut ? '⏰ Zeit um' : (result.correct ? '✓ Richtig' : '✗ Falsch');
+
+        setTimeout(next, 1600);
+    }
+
+    function next() {
+        curIdx++;
+        if (curIdx < order.length) showQuestion(order[curIdx]);
+        else showResult();
+    }
+
+    function showResult() {
+        document.getElementById('quiz-question-card').style.display = 'none';
+        document.getElementById('quiz-intro').style.display = 'block';
+        renderIntro();
+        const total = questions.length;
+        const correct = Object.values(answeredMap).filter(a => a.correct).length;
+        const answered = Object.keys(answeredMap).length;
+        const card = document.getElementById('quiz-result-card');
+        if (total > 0 && answered >= total) {
+            card.style.display = 'block';
+            card.innerHTML = `<h3 style="margin-top:0;">🏁 Dein Ergebnis</h3>
+                <p style="font-size:15px;">Du hast <b style="color:var(--accent-green)">${correct}/${total}</b> Fragen richtig beantwortet.</p>`;
+        } else {
+            card.style.display = 'none';
+        }
+        loadLeaderboard();
+    }
+
+    async function loadLeaderboard() {
+        const el = document.getElementById('quiz-leaderboard');
+        if (!el) return;
+        try {
+            const r = await fetch('/api/quiz/leaderboard');
+            const d = await r.json();
+            const rows = d.leaderboard || [];
+            if (!rows.length) { el.innerHTML = '<p style="color:var(--text-muted);font-size:13px;">Noch keine Teilnehmer.</p>'; return; }
+            const me = myToken ? globalData?.users.find(u => u.token === myToken) : null;
+            el.innerHTML = rows.map((r2, i) => {
+                const medal = ['🥇', '🥈', '🥉'][i] || `${i + 1}.`;
+                const isMe = me && r2.id === me.id;
+                return `<div class="board-row${isMe ? ' me' : ''}"><span class="rank">${medal}</span>
+                    <span class="who">${r2.name}</span>
+                    <span class="sc">${r2.correct}/${d.total}</span></div>`;
+            }).join('');
+        } catch (e) { el.innerHTML = '<p style="color:var(--text-muted);font-size:13px;">Fehler beim Laden.</p>'; }
+    }
+
+    function enter() {
+        document.getElementById('quiz-result-card').style.display = 'none';
+        document.getElementById('quiz-question-card').style.display = 'none';
+        document.getElementById('quiz-intro').style.display = 'block';
+        loadState();
+        loadLeaderboard();
+    }
+
+    return { enter, start, answer, next };
+})();
+window.QUIZ = QUIZ;
+
 // ── Wrapped Feature Rendering ─────────────────────────────────────────────────
 async function renderWrapped() {
     const wrappedUi = document.getElementById('wrapped-ui');
@@ -2528,73 +2764,6 @@ async function renderWrapped() {
         wrappedUi.innerHTML = `<div class="wrapped-card" style="background:none;"><p style="color:var(--accent);text-align:center;padding:20px;">Fehler beim Laden deines Rückblicks: ${e.message}</p></div>`;
     }
 }
-
-// ── Wrapped Feature Rendering ─────────────────────────────────────────────────
-async function renderWrapped() {
-    const wrappedUi = document.getElementById('wrapped-ui');
-    if (!wrappedUi) return; // Defensive check
-
-    if (!myToken || !globalData) {
-        wrappedUi.innerHTML = '<div class="wrapped-card" style="background:none;"><p style="color:var(--text-muted);text-align:center;padding:20px;">Bitte melde dich an, um deinen Rückblick zu sehen.</p></div>';
-        return;
-    }
-
-    const me = globalData.users.find(u => u.token === myToken);
-    if (!me) {
-        wrappedUi.innerHTML = '<div class="wrapped-card" style="background:none;"><p style="color:var(--text-muted);text-align:center;padding:20px;">Dein Benutzerkonto wurde nicht gefunden.</p></div>';
-        return;
-    }
-
-    // Restore original structure with loading state, in case it was replaced by an error message.
-    wrappedUi.innerHTML = `
-        <div id="wrapped-card-best" class="wrapped-card">
-            <h2>Dein bester Treffer! 🎯</h2>
-            <p id="wrapped-best">Lade...</p>
-        </div>
-        <div id="wrapped-card-worst" class="wrapped-card">
-            <h2>Schlimmster Fehltipp 📉</h2>
-            <p id="wrapped-worst">Lade...</p>
-        </div>
-    `;
-
-    const wrappedBest = document.getElementById('wrapped-best');
-    const wrappedWorst = document.getElementById('wrapped-worst');
-
-    try {
-        const response = await fetch(`/api/wrapped/${me.id}?token=${myToken}`);
-        if (!response.ok) {
-            const errData = await response.json().catch(() => ({ error: 'Server-Antwort nicht lesbar.' }));
-            throw new Error(errData.error || `Serverfehler: ${response.status}`);
-        }
-        const data = await response.json();
-
-        wrappedBest.innerHTML = data.bestTip
-            ? `${f(data.bestTip.teamA)} ${dn(data.bestTip.teamA)} ${data.bestTip.resultA}:${data.bestTip.resultB} ${dn(data.bestTip.teamB)} ${f(data.bestTip.teamB)}<br>Dein Tipp: ${data.bestTip.tipA}:${data.bestTip.tipB} (${data.bestTip.points}P)`
-            : 'Noch kein bester Treffer.';
-
-        wrappedWorst.innerHTML = data.worstTip
-            ? `${f(data.worstTip.teamA)} ${dn(data.worstTip.teamA)} ${data.worstTip.resultA}:${data.worstTip.resultB} ${dn(data.worstTip.teamB)} ${f(data.worstTip.teamB)}<br>Dein Tipp: ${data.worstTip.tipA}:${data.worstTip.tipB} (${data.worstTip.points}P)`
-            : 'Noch kein schlimmster Fehltipp.';
-
-        if (data.favoriteScore && data.favoriteScore.count > 0) {
-            const favCard = document.createElement('div');
-            favCard.className = 'wrapped-card';
-            favCard.innerHTML = `<h2>Dein Lieblings-Score 💚</h2><p>${data.favoriteScore.score} (${data.favoriteScore.count}× getippt)</p>`;
-            wrappedUi.appendChild(favCard);
-        }
-        if (data.streak > 0) {
-            const streakCard = document.createElement('div');
-            streakCard.className = 'wrapped-card';
-            streakCard.innerHTML = `<h2>Deine längste Serie 🔥</h2><p>${data.streak} Spiele in Folge mit Tendenz</p>`;
-            wrappedUi.appendChild(streakCard);
-        }
-
-    } catch (e) {
-        console.error("Error fetching wrapped data:", e);
-        wrappedUi.innerHTML = `<div class="wrapped-card" style="background:none;"><p style="color:var(--accent);text-align:center;padding:20px;">Fehler beim Laden deines Rückblicks: ${e.message}</p></div>`;
-    }
-}
-
 
 // ── Stats Subtab Navigation ───────────────────────────────────────────────────
 function switchStatsTab(id, btn) {
@@ -2785,8 +2954,10 @@ function renderAdmin(matches,users) {
                 <span style="color:var(--accent-green);margin-left:8px;font-size:13px;">${u.points}P</span><br>
                 <small style="color:var(--text-muted);font-size:11px;user-select:all;">/?token=${u.token}</small>
             </div>
-            <button class="btn-danger" style="height:32px;padding:0 10px;font-size:13px;flex-shrink:0;margin-left:8px;"
-                onclick="deleteUser('${u.id}','${u.name.replace(/'/g,"\\'")}')">Löschen</button>
+            <div style="display:flex;gap:6px;flex-shrink:0;margin-left:8px;">
+                <button class="btn-secondary" style="height:32px;padding:0 10px;font-size:13px;" onclick="resetQuiz('${u.id}','${u.name.replace(/'/g,"\\'")}')">Quiz Reset</button>
+                <button class="btn-danger" style="height:32px;padding:0 10px;font-size:13px;" onclick="deleteUser('${u.id}','${u.name.replace(/'/g,"\\'")}')">Löschen</button>
+            </div>
         </div>`).join('');
     // Sort matches for admin results tab: newest first
     const sortedMatches = [...matches].sort((a, b) => b.kickoff - a.kickoff);

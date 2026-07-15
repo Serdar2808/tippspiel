@@ -9,6 +9,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Tippspiel">
     <link rel="apple-touch-icon" href="/icon-192.png">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <title>WM 2026 Tippspiel</title>
     <style>
         :root {
@@ -309,6 +311,42 @@
         .game-panel p { margin:0 0 16px;color:var(--text-muted);font-size:14px; }
         .game-panel button { background:var(--btn-green);color:#fff;border:none;border-radius:8px;
             padding:10px 22px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit; }
+
+        /* --- CSS FÜR FEATURE 1: WRAPPED (Scroll-Snap Swipe-Karten) --- */
+        .wrapped-container {
+            display: flex;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            height: calc(100vh - 65px - env(safe-area-inset-top) - 65px - env(safe-area-inset-bottom)); /* Adjust height for header/footer */
+            background: #121212;
+            color: white;
+            -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+        }
+        .wrapped-card {
+            flex: 0 0 100vw; /* Jede Karte nimmt die volle Breite ein */
+            scroll-snap-align: start;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5rem;
+            padding: 20px;
+            text-align: center; /* Center text within cards */
+        }
+        /* Specific styles for each wrapped card */
+        .wrapped-card:nth-child(1) { background: linear-gradient(45deg, #FF0055, #000066); }
+        .wrapped-card:nth-child(2) { background: linear-gradient(45deg, #5500FF, #000000); }
+        .wrapped-card:nth-child(3) { background: linear-gradient(45deg, #006600, #000000); } /* For favorite score */
+        .wrapped-card:nth-child(4) { background: linear-gradient(45deg, #FFD700, #FFA500); } /* For streak */
+        .wrapped-card h2, .wrapped-card p {
+            color: white; /* Apply white text color to all cards */
+        }
+
+        /* Modal für GIF-Reaktionen */
+        #reaction-modal {
+            display: none; position: fixed; top: 50%; left: 50%; 
+            transform: translate(-50%, -50%); z-index: 1000;
+        }
     </style>
 </head>
 <body>
@@ -325,6 +363,11 @@
     </div>
 </div>
 <div id="toast"></div>
+
+<div id="reaction-modal">
+    <img id="reaction-gif" src="" alt="Reaction" style="max-width: 300px; border-radius: 15px;">
+</div>
+
 
 <!-- Tipps-Modal -->
 <div id="modal-overlay" onclick="if(event.target===this)closeModal()">
@@ -502,7 +545,14 @@
     </div>
 
     <div id="st-duell" class="stats-section">
-        <div class="card"><h3>Head-to-Head</h3><div id="h2h-content"></div></div>
+        <div class="card">
+            <h3>Head-to-Head</h3>
+            <div id="h2h-selectors"></div>
+            <div style="position: relative; height:300px; width: 100%; max-width: 600px; margin: 12px auto;">
+                <canvas id="h2hChart"></canvas>
+            </div>
+            <div id="h2h-result"></div>
+        </div>
     </div>
 </div>
 
@@ -662,6 +712,21 @@
     </div>
 </div>
 
+<!-- WRAPPED TAB -->
+<div id="tab-wrapped" class="tab-content">
+    <h2 class="page-title">🎁 Dein Rückblick</h2>
+    <div id="wrapped-ui" class="wrapped-container">
+        <div id="wrapped-card-best" class="wrapped-card">
+            <h2>Dein bester Treffer! 🎯</h2>
+            <p id="wrapped-best"></p>
+        </div>
+        <div id="wrapped-card-worst" class="wrapped-card">
+            <h2>Schlimmster Fehltipp 📉</h2>
+            <p id="wrapped-worst"></p>
+        </div>
+    </div>
+</div>
+
 <!-- ADMIN TAB -->
 <div id="tab-admin" class="tab-content">
     <h2 class="page-title">⚙️ Admin</h2>
@@ -742,6 +807,7 @@
     <button onclick="switchTab('tab-bracket')" id="btn-bracket">🌳<br>Baum</button>
     <button onclick="switchTab('tab-rankings')" id="btn-rankings">🏆<br>Rangliste</button>
     <button onclick="switchTab('tab-stats')" id="btn-stats">📈<br>Stats</button>
+    <button onclick="switchTab('tab-wrapped')" id="btn-wrapped">🎁<br>Wrapped</button>
     <button onclick="switchTab('tab-games')" id="btn-games">🎮<br>Games</button>
 </nav>
 
@@ -752,7 +818,7 @@ const CHART_COLORS=['#ccff00','#38bdf8','#fb923c','#f472b6','#a78bfa','#34d399',
 const REACTION_EMOJIS = ['🎯','😭','🔥','😱','🤩','😤'];
 const TIP_REACTION_EMOJIS = ['😀','😂','🙁','😭','😡','😳','🤑','👍','👏','💪','👎'];
 
-let globalData=null, adminMode=false, urlAdminPass='', myToken='', currentFilter='alle', currentTipState='offen', currentRankingPhase='all', currentGroupMd='all', adminTipMatchId='', rankingLive=false, currentGroupTab='A', currentStatsTab='st-ich', statsUserId=null;
+let globalData=null, adminMode=false, urlAdminPass='', myToken='', currentFilter='alle', currentTipState='offen', currentRankingPhase='all', currentGroupMd='all', adminTipMatchId='', rankingLive=false, currentGroupTab='A', currentStatsTab='st-ich', statsUserId=null, h2hChartInstance = null;
 
 // ── Hilfsfunktionen ─────────────────────────────────────────────────────────
 // Anzeigename: Bosnien und Herzegowina → Bosnien
@@ -924,7 +990,14 @@ function switchTab(id) {
     const btn=document.getElementById('btn-'+id.replace('tab-',''));
     if(btn) btn.classList.add('active');
     if(window.GAMES){ if(id==='tab-games') GAMES.enter(); else GAMES.leave(); }
-    if(globalData && id!=='tab-games') refreshData();
+
+    // Tab-spezifische Logik ausführen
+    if (id === 'tab-wrapped') {
+        renderWrapped(); // Holt & rendert die "Wrapped"-Daten
+    }
+    // Für alle anderen Tabs werden die Daten durch den Hintergrund-Poller (checkForUpdates)
+    // effizient aktualisiert. Ein erzwungener Refresh bei jedem Tab-Wechsel ist nicht nötig
+    // und wurde entfernt, um die Performance zu verbessern und unnötige API-Aufrufe zu vermeiden.
 }
 
 // ── Filter ───────────────────────────────────────────────────────────────────
@@ -1247,6 +1320,26 @@ async function submitResult(matchId) {
     } catch{showToast('Netzwerkfehler','error');}
 }
 
+async function submitLive(matchId) {
+    const liveA=document.getElementById('admin-liveA-'+matchId).value;
+    const liveB=document.getElementById('admin-liveB-'+matchId).value;
+    if(liveA===''||liveB===''){showToast('Bitte beide Felder ausfüllen.','error');return;}
+    try {
+        const r=await fetch('/api/admin/live',{method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({matchId,liveA,liveB,adminPass:urlAdminPass})});
+        const d=await r.json();
+        if(r.ok){showToast(`Live-Stand ${liveA}:${liveB} gesetzt 🔴`);await refreshData();}
+        else showToast('Fehler: '+(d.error||'Unbekannt'),'error');
+    } catch{showToast('Netzwerkfehler','error');}
+}
+async function clearLive(matchId) {
+    try {
+        const r=await fetch('/api/admin/live',{method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({matchId,liveA:'',liveB:'',adminPass:urlAdminPass})});
+        if(r.ok){showToast('Live-Stand entfernt.');await refreshData();}
+    } catch{showToast('Netzwerkfehler','error');}
+}
+
 // ── Tipps-Modal ───────────────────────────────────────────────────────────────
 function showTips(matchId) {
     const m=globalData.matches.find(x=>x.id===matchId);
@@ -1502,6 +1595,18 @@ function renderRankings(data) {
     const officialRank={}; official.forEach((u,i)=>officialRank[u.id]=i);
     const sorted = (rankingLive&&hasLive) ? rank(true) : official;
 
+    // Trefferquote (Anteil Tipps mit ≥1 Punkt) je Spieler + eigener Rang – zeigt sichtbar,
+    // dass man dank Exakt-Treffern (3P) auch mit niedrigerer Quote vorne stehen kann.
+    const hrStats = data.users.map(u=>{
+        const scored = data.tips.filter(t=>t.userId===u.id&&phaseMatchIds.has(t.matchId)&&t.tipA!=null&&matchById[t.matchId]&&matchById[t.matchId].finished);
+        const hits = scored.filter(t=>(t.points||0)>=1).length;
+        return { id:u.id, hits, total:scored.length, rate: scored.length?hits/scored.length:-1 };
+    });
+    const hrRanked = [...hrStats].filter(h=>h.total>0).sort((a,b)=>b.rate-a.rate||b.total-a.total);
+    const hrRank={}; hrRanked.forEach((h,idx)=>hrRank[h.id]=idx+1);
+    const hrById=Object.fromEntries(hrStats.map(h=>[h.id,h]));
+    const hrN = hrRanked.length;
+
     // Gewinnbeträge laut Regeln (Topf 600 €). Bei echtem Gleichstand werden die
     // Preisgelder der betroffenen Plätze zusammengelegt und zu gleichen Teilen geteilt.
     const PRIZES=[180,108,72,54,48,42,36,30,18,12];
@@ -1538,6 +1643,14 @@ function renderRankings(data) {
                     :d<0?`<span style="color:var(--accent);font-size:11px;font-weight:700;">▼${-d}</span>`
                     :`<span style="color:var(--text-muted);font-size:11px;">–</span>`;
             }
+            // Quote-Rang: Platzierung nur nach Trefferquote (unabhängig vom Punkte-Rang oben).
+            // pointsRank = Platz in DIESER Rangliste (i+1); Differenz zeigt, wie stark Exakt-Treffer den Platz nach oben ziehen.
+            const hr=hrById[u.id];
+            const hrRankVal = hr&&hr.total>0 ? hrRank[u.id] : null;
+            const hrPct = hr&&hr.total>0 ? Math.round(hr.rate*100) : null;
+            const hrHtml = hrPct!=null ? `<div style="font-size:11px;color:var(--text-muted);margin-top:5px;">
+                    🎯 Trefferquote <b style="color:var(--text)">${hrPct}%</b> <span style="opacity:.75;">(Quote-Rang ${hrRankVal}/${hrN})</span>
+                </div>` : '';
             return `<div class="card" onclick="showUserTips('${u.id}')" style="cursor:pointer;${isMe?'border-color:var(--accent-green);':''}">
                 <div style="display:flex;align-items:center;gap:8px;">
                     <span style="flex-shrink:0;min-width:42px;text-align:center;line-height:1.1;">
@@ -1551,7 +1664,7 @@ function renderRankings(data) {
                         <span title="Tendenz">📈<b style="color:#fb923c">${u.pTend}</b></span>
                     </span>
                     <span style="flex-shrink:0;margin-left:2px;"><b style="color:var(--accent-green);font-size:20px;">${u.pPts}</b></span>
-                </div>${badgeHtml}</div>`;
+                </div>${hrHtml}${badgeHtml}</div>`;
         }).join('');
     document.getElementById('rankings-list').innerHTML = phaseBar + mdBar + liveToggle + cards;
 }
@@ -2028,10 +2141,7 @@ function koCard(m){
     const live = !m.finished && m.liveA!=null && m.liveB!=null;
     const sA = m.finished ? m.resultA : (live ? m.liveA : null);
     const sB = m.finished ? m.resultB : (live ? m.liveB : null);
-    // Sieger-Ermittlung, in Prioritätsreihenfolge:
-    // 1) Admin-gewählter Aufsteiger (ko_advancers – z.B. über den KO-Tab gesetzt)
-    // 2) Elfmeterschießen  3) Verlängerung  4) reguläre 90 Minuten.
-    // So wird der Sieger erkannt, egal über welchen Admin-Weg er hinterlegt wurde.
+    
     let winA=false, winB=false;
     if(m.finished){
         if(m.advancer && (m.advancer===m.teamA || m.advancer===m.teamB)){
@@ -2040,8 +2150,10 @@ function koCard(m){
         else if(m.etA!=null && m.etB!=null && m.etA!==m.etB){ winA=m.etA>m.etB; winB=!winA; }
         else if(m.resultA!=null && m.resultB!=null && m.resultA!==m.resultB){ winA=m.resultA>m.resultB; winB=!winA; }
     }
-    const cell=(name,tba)=> tba ? '<span class="ko-team ko-tba">offen</span>' : `<span class="ko-team">${f(name)} ${dn(name)}</span>`;
-    const row=(name,tba,score,win,lose)=>`<div class="ko-row${win?' win':''}${lose?' lose':''}">${cell(name,tba)}<span class="ko-score">${score!=null?score:''}</span></div>`;
+
+    const teamAHtml = tbaA ? `<span class="ko-team ko-tba">offen</span>` : `<span class="ko-team">${f(m.teamA)} ${dn(m.teamA)}</span>`;
+    const teamBHtml = tbaB ? `<span class="ko-team ko-tba">offen</span>` : `<span class="ko-team">${f(m.teamB)} ${dn(m.teamB)}</span>`;
+
     let meta;
     if(tbaA||tbaB) meta='⏳ Teams offen';
     else if(m.finished){
@@ -2052,10 +2164,18 @@ function koCard(m){
     }
     else if(live) meta='🔴 LIVE';
     else meta=brFmt(m.kickoff);
+
     return `<div class="ko-card${live?' live':''}">
-        ${row(m.teamA,tbaA,sA,winA,winB)}
-        ${row(m.teamB,tbaB,sB,winB,winA)}
-        <div class="ko-meta${live?' live':''}">${meta}</div></div>`;
+        <div class="ko-row${winA?' win':''}${winB?' lose':''}">
+            ${teamAHtml}
+            <span class="ko-score">${sA!=null?sA:''}</span>
+        </div>
+        <div class="ko-row${winB?' win':''}${winA?' lose':''}">
+            ${teamBHtml}
+            <span class="ko-score">${sB!=null?sB:''}</span>
+        </div>
+        <div class="ko-meta${live?' live':''}">${meta}</div>
+    </div>`;
 }
 
 function renderBracket(data){
@@ -2163,8 +2283,10 @@ function drawRankingsChart(data) {
     el.innerHTML=`<svg width="100%" viewBox="0 0 ${W} ${H}" style="display:block;">${axis}${lines}${labels}</svg>
         <div style="font-size:10px;color:var(--text-muted);text-align:center;margin-top:6px;">Platzierung über die Zeit · oben = Platz 1</div>`;
 }
+
 function renderH2HSelectors(data) {
-    const el=document.getElementById('h2h-content');
+    const el=document.getElementById('h2h-selectors');
+    if(!el) return;
     if(data.users.length<2){el.innerHTML='<p style="color:var(--text-muted);text-align:center;">Mindestens 2 Spieler nötig.</p>';return;}
     const me=myToken?data.users.find(u=>u.token===myToken):null;
     let html='';
@@ -2182,51 +2304,295 @@ function renderH2HSelectors(data) {
             <span style="color:var(--text-muted);flex-shrink:0;">vs</span>
             <select id="h2h-b" onchange="updateH2H()" style="flex:1;">${opts2}</select></div>`;
     }
-    el.innerHTML=html+'<div id="h2h-result"></div>';
+    el.innerHTML=html;
     updateH2H();
 }
 
-function updateH2H() {
-    const data=globalData;if(!data)return;
-    const me=myToken?data.users.find(u=>u.token===myToken):null;
-    const selA=document.getElementById('h2h-a'),selB=document.getElementById('h2h-b');
-    const idA=me?me.id:(selA?selA.value:null),idB=selB?selB.value:null;
-    if(!idA||!idB||idA===idB)return;
-    const uA=data.users.find(u=>u.id===idA),uB=data.users.find(u=>u.id===idB);
-    if(!uA||!uB)return;
-    const finished=data.matches.filter(m=>m.finished).sort((a,b)=>a.kickoff-b.kickoff);
-    let wA=0,wB=0,dr=0,pA=0,pB=0;
-    const rows=finished.map(m=>{
-        const tA=data.tips.find(t=>t.matchId===m.id&&t.userId===uA.id);
-        const tB=data.tips.find(t=>t.matchId===m.id&&t.userId===uB.id);
-        const p1=tA?(tA.points||0):0,p2=tB?(tB.points||0):0;
-        pA+=p1;pB+=p2;
-        if(p1>p2)wA++;else if(p2>p1)wB++;else dr++;
-        const bg=p1>p2?'rgba(204,255,0,.04)':p2>p1?'rgba(255,0,77,.04)':'';
-        return `<div style="display:grid;grid-template-columns:1fr auto 1fr;gap:4px;align-items:center;padding:6px 2px;border-bottom:1px solid var(--border);font-size:12px;background:${bg};">
-            <span class="pts-badge pts-${p1}" style="text-align:center;margin:0">${p1}P</span>
-            <span style="color:var(--text-muted);font-size:10px;text-align:center;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f(m.teamA)}${dn(m.teamA).split(' ')[0]} vs ${dn(m.teamB).split(' ')[0]}${f(m.teamB)}</span>
-            <span class="pts-badge pts-${p2}" style="text-align:center;margin:0">${p2}P</span></div>`;
-    }).join('');
-    document.getElementById('h2h-result').innerHTML=`
-        <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;text-align:center;padding:12px;background:var(--bg);border-radius:10px;margin-bottom:10px;">
-            <div><div style="font-weight:700;font-size:14px;color:var(--accent-green);margin-bottom:4px;">${uA.name}</div>
-                <div style="font-size:30px;font-weight:900;color:var(--accent-green);">${wA}</div>
-                <div style="font-size:11px;color:var(--text-muted);">Siege</div>
-                <div style="font-size:18px;font-weight:700;color:var(--accent-green);margin-top:6px;">${pA}P</div></div>
-            <div style="display:flex;flex-direction:column;justify-content:center;align-items:center;gap:6px;">
-                <div style="font-size:11px;color:var(--text-muted);">Unentschieden</div>
-                <div style="font-size:20px;font-weight:700;color:var(--text-muted);">${dr}</div></div>
-            <div><div style="font-weight:700;font-size:14px;color:var(--accent);margin-bottom:4px;">${uB.name}</div>
-                <div style="font-size:30px;font-weight:900;color:var(--accent);">${wB}</div>
-                <div style="font-size:11px;color:var(--text-muted);">Siege</div>
-                <div style="font-size:18px;font-weight:700;color:var(--accent);margin-top:6px;">${pB}P</div></div>
+async function updateH2H() {
+    const data = globalData;
+    const resultEl = document.getElementById('h2h-result');
+    if (!data) return;
+
+    const me = myToken ? data.users.find(u => u.token === myToken) : null;
+    const selA = document.getElementById('h2h-a');
+    const selB = document.getElementById('h2h-b');
+
+    const idA = me ? me.id : (selA ? selA.value : null);
+    const idB = selB ? selB.value : null;
+
+    if (!idA || !idB || idA === idB) {
+        if(resultEl) resultEl.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:20px;">Wähle zwei verschiedene Spieler aus.</p>';
+        if (h2hChartInstance) {
+            h2hChartInstance.destroy();
+            h2hChartInstance = null;
+        }
+        return;
+    }
+
+    const uA = data.users.find(u => u.id === idA);
+    const uB = data.users.find(u => u.id === idB);
+    if (!uA || !uB) return;
+
+    // Fetch H2H data from the new API endpoint
+    try {
+        const response = await fetch(`/api/h2h?token=${myToken}`);
+        if (!response.ok) throw new Error('Failed to fetch H2H data');
+        const h2hData = await response.json();
+
+        // Filter data for selected users
+        const datasets = h2hData.datasets.filter(ds => ds.userId === idA || ds.userId === idB);
+
+        if (datasets.length < 2) {
+            if(resultEl) resultEl.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:20px;">Nicht genügend Daten für den Vergleich.</p>';
+            if (h2hChartInstance) {
+                h2hChartInstance.destroy();
+                h2hChartInstance = null;
+            }
+            return;
+        }
+
+        const ctx = document.getElementById('h2hChart').getContext('2d');
+
+        if (h2hChartInstance) {
+            h2hChartInstance.destroy(); // Destroy previous chart instance
+        }
+
+        h2hChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: h2hData.labels,
+                datasets: datasets.map((ds, index) => ({
+                    label: ds.label,
+                    data: ds.data,
+                    borderColor: index === 0 ? CHART_COLORS[0] : CHART_COLORS[1], // Assign different colors
+                    backgroundColor: 'rgba(0,0,0,0)', // Transparent fill
+                    tension: 0.3,
+                    pointRadius: 3,
+                    pointBackgroundColor: index === 0 ? CHART_COLORS[0] : CHART_COLORS[1],
+                    pointBorderColor: '#fff',
+                    pointHoverRadius: 5,
+                    fill: false
+                }))
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: 'var(--text)'
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            title: function(context) {
+                                return `Tag: ${context[0].label}`;
+                            },
+                            label: function(context) {
+                                return `${context.dataset.label}: ${context.raw} Punkte`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Spieltag',
+                            color: 'var(--text)'
+                        },
+                        ticks: {
+                            color: 'var(--text)'
+                        },
+                        grid: {
+                            color: 'rgba(255,255,255,0.1)'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Kumulierte Punkte',
+                            color: 'var(--text)'
+                        },
+                        ticks: {
+                            color: 'var(--text)'
+                        },
+                        grid: {
+                            color: 'rgba(255,255,255,0.1)'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Display the comparison summary below the chart (optional, but good for context)
+        const finishedMatches = data.matches.filter(m => m.finished).sort((a, b) => a.kickoff - b.kickoff);
+        let wA = 0, wB = 0, dr = 0, pA = 0, pB = 0;
+        finishedMatches.forEach(m => {
+            const tA = data.tips.find(t => t.matchId === m.id && t.userId === uA.id);
+            const tB = data.tips.find(t => t.matchId === m.id && t.userId === uB.id);
+            const p1 = tA ? (tA.points || 0) : 0;
+            const p2 = tB ? (tB.points || 0) : 0;
+            pA += p1;
+            pB += p2;
+            if (p1 > p2) wA++; else if (p2 > p1) wB++; else dr++;
+        });
+
+        if(resultEl) resultEl.innerHTML = `
+            <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;text-align:center;padding:12px;background:var(--bg);border-radius:10px;margin-top:10px;">
+                <div><div style="font-weight:700;font-size:14px;color:var(--accent-green);margin-bottom:4px;">${uA.name}</div>
+                    <div style="font-size:30px;font-weight:900;color:var(--accent-green);">${wA}</div>
+                    <div style="font-size:11px;color:var(--text-muted);">Siege</div>
+                    <div style="font-size:18px;font-weight:700;color:var(--accent-green);margin-top:6px;">${pA}P</div></div>
+                <div style="display:flex;flex-direction:column;justify-content:center;align-items:center;gap:6px;">
+                    <div style="font-size:11px;color:var(--text-muted);">Unentschieden</div>
+                    <div style="font-size:20px;font-weight:700;color:var(--text-muted);">${dr}</div></div>
+                <div><div style="font-weight:700;font-size:14px;color:var(--accent);margin-bottom:4px;">${uB.name}</div>
+                    <div style="font-size:30px;font-weight:900;color:var(--accent);">${wB}</div>
+                    <div style="font-size:11px;color:var(--text-muted);">Siege</div>
+                    <div style="font-size:18px;font-weight:700;color:var(--accent);margin-top:6px;">${pB}P</div></div>
+            </div>`;
+
+    } catch (e) {
+        console.error("Error fetching or rendering H2H chart:", e);
+        if(resultEl) resultEl.innerHTML = `<p style="color:var(--accent);text-align:center;padding:20px;">Fehler beim Laden der H2H-Daten: ${e.message}</p>`;
+        if (h2hChartInstance) {
+            h2hChartInstance.destroy();
+            h2hChartInstance = null;
+        }
+    }
+}
+
+// ── Wrapped Feature Rendering ─────────────────────────────────────────────────
+async function renderWrapped() {
+    const wrappedUi = document.getElementById('wrapped-ui');
+    if (!wrappedUi) return; // Defensive check
+
+    if (!myToken || !globalData) {
+        wrappedUi.innerHTML = '<div class="wrapped-card" style="background:none;"><p style="color:var(--text-muted);text-align:center;padding:20px;">Bitte melde dich an, um deinen Rückblick zu sehen.</p></div>';
+        return;
+    }
+
+    const me = globalData.users.find(u => u.token === myToken);
+    if (!me) {
+        wrappedUi.innerHTML = '<div class="wrapped-card" style="background:none;"><p style="color:var(--text-muted);text-align:center;padding:20px;">Dein Benutzerkonto wurde nicht gefunden.</p></div>';
+        return;
+    }
+
+    // Restore original structure with loading state, in case it was replaced by an error message.
+    wrappedUi.innerHTML = `
+        <div id="wrapped-card-best" class="wrapped-card">
+            <h2>Dein bester Treffer! 🎯</h2>
+            <p id="wrapped-best">Lade...</p>
         </div>
-        ${finished.length?`<div style="max-height:280px;overflow-y:auto;border-radius:8px;border:1px solid var(--border);">
-            <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:4px;padding:6px 2px;background:var(--card-bg2);">
-                <span style="font-size:11px;font-weight:700;color:var(--accent-green);text-align:center;">${uA.name}</span><span></span>
-                <span style="font-size:11px;font-weight:700;color:var(--accent);text-align:center;">${uB.name}</span></div>${rows}</div>`
-            :'<p style="color:var(--text-muted);text-align:center;">Noch keine Spiele beendet.</p>'}`;
+        <div id="wrapped-card-worst" class="wrapped-card">
+            <h2>Schlimmster Fehltipp 📉</h2>
+            <p id="wrapped-worst">Lade...</p>
+        </div>
+    `;
+
+    const wrappedBest = document.getElementById('wrapped-best');
+    const wrappedWorst = document.getElementById('wrapped-worst');
+
+    try {
+        const response = await fetch(`/api/wrapped/${me.id}?token=${myToken}`);
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({ error: 'Server-Antwort nicht lesbar.' }));
+            throw new Error(errData.error || `Serverfehler: ${response.status}`);
+        }
+        const data = await response.json();
+
+        wrappedBest.innerHTML = data.bestTip
+            ? `${f(data.bestTip.teamA)} ${dn(data.bestTip.teamA)} ${data.bestTip.resultA}:${data.bestTip.resultB} ${dn(data.bestTip.teamB)} ${f(data.bestTip.teamB)}<br>Dein Tipp: ${data.bestTip.tipA}:${data.bestTip.tipB} (${data.bestTip.points}P)`
+            : 'Noch kein bester Treffer.';
+
+        wrappedWorst.innerHTML = data.worstTip
+            ? `${f(data.worstTip.teamA)} ${dn(data.worstTip.teamA)} ${data.worstTip.resultA}:${data.worstTip.resultB} ${dn(data.worstTip.teamB)} ${f(data.worstTip.teamB)}<br>Dein Tipp: ${data.worstTip.tipA}:${data.worstTip.tipB} (${data.worstTip.points}P)`
+            : 'Noch kein schlimmster Fehltipp.';
+
+        if (data.favoriteScore && data.favoriteScore.count > 0) {
+            const favCard = document.createElement('div');
+            favCard.className = 'wrapped-card';
+            favCard.innerHTML = `<h2>Dein Lieblings-Score 💚</h2><p>${data.favoriteScore.score} (${data.favoriteScore.count}× getippt)</p>`;
+            wrappedUi.appendChild(favCard);
+        }
+        if (data.streak > 0) {
+            const streakCard = document.createElement('div');
+            streakCard.className = 'wrapped-card';
+            streakCard.innerHTML = `<h2>Deine längste Serie 🔥</h2><p>${data.streak} Spiele in Folge mit Tendenz</p>`;
+            wrappedUi.appendChild(streakCard);
+        }
+
+    } catch (e) {
+        console.error("Error fetching wrapped data:", e);
+        wrappedUi.innerHTML = `<div class="wrapped-card" style="background:none;"><p style="color:var(--accent);text-align:center;padding:20px;">Fehler beim Laden deines Rückblicks: ${e.message}</p></div>`;
+    }
+}
+
+// ── Wrapped Feature Rendering ─────────────────────────────────────────────────
+async function renderWrapped() {
+    const wrappedUi = document.getElementById('wrapped-ui');
+    if (!wrappedUi) return; // Defensive check
+
+    if (!myToken || !globalData) {
+        wrappedUi.innerHTML = '<div class="wrapped-card" style="background:none;"><p style="color:var(--text-muted);text-align:center;padding:20px;">Bitte melde dich an, um deinen Rückblick zu sehen.</p></div>';
+        return;
+    }
+
+    const me = globalData.users.find(u => u.token === myToken);
+    if (!me) {
+        wrappedUi.innerHTML = '<div class="wrapped-card" style="background:none;"><p style="color:var(--text-muted);text-align:center;padding:20px;">Dein Benutzerkonto wurde nicht gefunden.</p></div>';
+        return;
+    }
+
+    // Restore original structure with loading state, in case it was replaced by an error message.
+    wrappedUi.innerHTML = `
+        <div id="wrapped-card-best" class="wrapped-card">
+            <h2>Dein bester Treffer! 🎯</h2>
+            <p id="wrapped-best">Lade...</p>
+        </div>
+        <div id="wrapped-card-worst" class="wrapped-card">
+            <h2>Schlimmster Fehltipp 📉</h2>
+            <p id="wrapped-worst">Lade...</p>
+        </div>
+    `;
+
+    const wrappedBest = document.getElementById('wrapped-best');
+    const wrappedWorst = document.getElementById('wrapped-worst');
+
+    try {
+        const response = await fetch(`/api/wrapped/${me.id}?token=${myToken}`);
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({ error: 'Server-Antwort nicht lesbar.' }));
+            throw new Error(errData.error || `Serverfehler: ${response.status}`);
+        }
+        const data = await response.json();
+
+        wrappedBest.innerHTML = data.bestTip
+            ? `${f(data.bestTip.teamA)} ${dn(data.bestTip.teamA)} ${data.bestTip.resultA}:${data.bestTip.resultB} ${dn(data.bestTip.teamB)} ${f(data.bestTip.teamB)}<br>Dein Tipp: ${data.bestTip.tipA}:${data.bestTip.tipB} (${data.bestTip.points}P)`
+            : 'Noch kein bester Treffer.';
+
+        wrappedWorst.innerHTML = data.worstTip
+            ? `${f(data.worstTip.teamA)} ${dn(data.worstTip.teamA)} ${data.worstTip.resultA}:${data.worstTip.resultB} ${dn(data.worstTip.teamB)} ${f(data.worstTip.teamB)}<br>Dein Tipp: ${data.worstTip.tipA}:${data.worstTip.tipB} (${data.worstTip.points}P)`
+            : 'Noch kein schlimmster Fehltipp.';
+
+        if (data.favoriteScore && data.favoriteScore.count > 0) {
+            const favCard = document.createElement('div');
+            favCard.className = 'wrapped-card';
+            favCard.innerHTML = `<h2>Dein Lieblings-Score 💚</h2><p>${data.favoriteScore.score} (${data.favoriteScore.count}× getippt)</p>`;
+            wrappedUi.appendChild(favCard);
+        }
+        if (data.streak > 0) {
+            const streakCard = document.createElement('div');
+            streakCard.className = 'wrapped-card';
+            streakCard.innerHTML = `<h2>Deine längste Serie 🔥</h2><p>${data.streak} Spiele in Folge mit Tendenz</p>`;
+            wrappedUi.appendChild(streakCard);
+        }
+
+    } catch (e) {
+        console.error("Error fetching wrapped data:", e);
+        wrappedUi.innerHTML = `<div class="wrapped-card" style="background:none;"><p style="color:var(--accent);text-align:center;padding:20px;">Fehler beim Laden deines Rückblicks: ${e.message}</p></div>`;
+    }
 }
 
 
@@ -2422,7 +2788,9 @@ function renderAdmin(matches,users) {
             <button class="btn-danger" style="height:32px;padding:0 10px;font-size:13px;flex-shrink:0;margin-left:8px;"
                 onclick="deleteUser('${u.id}','${u.name.replace(/'/g,"\\'")}')">Löschen</button>
         </div>`).join('');
-    document.getElementById('admin-matches').innerHTML=matches.map(m=>{
+    // Sort matches for admin results tab: newest first
+    const sortedMatches = [...matches].sort((a, b) => b.kickoff - a.kickoff);
+    document.getElementById('admin-matches').innerHTML=sortedMatches.map(m=>{
         return `
         <div class="card" style="border-left:4px solid ${m.finished?'var(--accent-green)':'var(--border)'};">
             <small style="color:var(--text-muted);display:block;margin-bottom:8px;">
@@ -2469,6 +2837,16 @@ function renderAdmin(matches,users) {
                 </div>
                 <p style="font-size:11px;color:var(--text-muted);margin:6px 0 0;">Oben bleibt der 90-Min-Stand für die Tipp-Wertung. n.V./i.E. bestimmen nur, wer im Turnierbaum weiterkommt.</p>
             </div>` : ''}
+            <div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--border);">
+                <div style="font-size:10px;color:var(--accent);font-weight:700;text-transform:uppercase;margin-bottom:4px;">🔴 Live-Stand (manueller Fallback)</div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <input type="number" inputmode="numeric" pattern="[0-9]*" id="admin-liveA-${m.id}" value="${m.liveA!==null&&m.liveA!==undefined?m.liveA:''}" placeholder="–">
+                    <span style="font-weight:900;margin:0 2px;color:var(--text-muted);">:</span>
+                    <input type="number" inputmode="numeric" pattern="[0-9]*" id="admin-liveB-${m.id}" value="${m.liveB!==null&&m.liveB!==undefined?m.liveB:''}" placeholder="–">
+                    <button onclick="submitLive('${m.id}')" style="background:var(--accent);">🔴 Setzen</button>
+                    <button class="btn-secondary" onclick="clearLive('${m.id}')">✕</button>
+                </div>
+            </div>
         </div>`;
     }).join('');
     renderAdminTips(globalData);
@@ -2478,7 +2856,8 @@ function renderAdmin(matches,users) {
 function renderAdminTips(data) {
     const sel=document.getElementById('admin-tip-match');
     if(!sel) return;
-    const matches=[...data.matches].sort((a,b)=>a.kickoff-b.kickoff);
+    // Sort matches for admin tip dropdown: newest first
+    const matches=[...data.matches].sort((a,b)=>b.kickoff-a.kickoff);
     const prev=adminTipMatchId||sel.value||'';
     sel.innerHTML='<option value="">– Spiel wählen –</option>'+matches.map(m=>{
         const dt=new Date(m.kickoff).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});

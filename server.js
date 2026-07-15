@@ -700,7 +700,6 @@ app.get('/einladung', (req, res) => {
                 color:var(--accent-green);font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;}
             .step b{font-size:13px;display:block;margin-bottom:3px;}
             .step p{font-size:12px;color:var(--text-muted);line-height:1.5;}
-            @keyframes livePulse{0%,100%{opacity:1}50%{opacity:.4}}
             @keyframes highlight{0%,100%{opacity:1}50%{opacity:.5}}
             /* Phone mockups */
             .mockup-wrap{margin-top:10px;display:flex;justify-content:center;}
@@ -1104,6 +1103,141 @@ app.get('/api/h2h', (req, res) => {
         console.error(`[H2H API] Fehler:`, e);
         res.status(500).json({ error: "Interner Serverfehler beim Abrufen der H2H-Daten." });
     }
+});
+
+// ── WM-Quiz ─────────────────────────────────────────────────────────────────
+// Jede Frage wird erst getrackt, wenn der User sie öffnet (/api/quiz/open setzt
+// openedAt serverseitig fest). Ab da hat der User QUIZ_TIME_LIMIT_MS Zeit,
+// +QUIZ_GRACE_MS Netzwerk-Puffer. Jede Frage ist genau einmal beantwortbar
+// (PRIMARY KEY userId+questionId in quiz_answers verhindert Zweitversuche).
+// Die korrekte Antwort (correctIndex) wird dem Client NIE mitgeschickt.
+db.exec(`CREATE TABLE IF NOT EXISTS quiz_opens (
+    userId     TEXT NOT NULL,
+    questionId TEXT NOT NULL,
+    openedAt   INTEGER NOT NULL,
+    PRIMARY KEY (userId, questionId)
+)`);
+db.exec(`CREATE TABLE IF NOT EXISTS quiz_answers (
+    userId      TEXT NOT NULL,
+    questionId  TEXT NOT NULL,
+    answerIndex INTEGER,
+    correct     INTEGER NOT NULL DEFAULT 0,
+    answeredAt  INTEGER NOT NULL,
+    PRIMARY KEY (userId, questionId)
+)`);
+
+const QUIZ_TIME_LIMIT_MS = 15000;
+const QUIZ_GRACE_MS = 3000; // Puffer für Netzwerk-Latenz zwischen Open und Answer
+
+const QUIZ_QUESTIONS = [
+    { id: 'q1', text: 'Wer ist mit 16 Treffern der alleinige Rekordtorschütze bei Fußball-Weltmeisterschaften?', options: ['Pelé', 'Ronaldo (Brasilien)', 'Miroslav Klose', 'Lionel Messi'], correctIndex: 2 },
+    { id: 'q2', text: 'Welche Nation konnte den WM-Pokal bisher am häufigsten gewinnen?', options: ['Deutschland', 'Italien', 'Argentinien', 'Brasilien'], correctIndex: 3 },
+    { id: 'q3', text: 'In welchem Jahr und in welchem Land fand die allererste Fußball-Weltmeisterschaft statt?', options: ['1928 in England', '1930 in Uruguay', '1934 in Italien', '1950 in Brasilien'], correctIndex: 1 },
+    { id: 'q4', text: 'Welcher legendäre Spieler schoss 1986 gegen England ein Tor mit der "Hand Gottes"?', options: ['Diego Maradona', 'Pelé', 'Michel Platini', 'Johan Cruyff'], correctIndex: 0 }, // Korrigiert
+    { id: 'q5', text: 'Welches afrikanische Land erreichte bei der WM 2022 in Katar als erstes Team seines Kontinents überhaupt ein WM-Halbfinale?', options: ['Senegal', 'Ghana', 'Marokko', 'Kamerun'], correctIndex: 2 },
+    { id: 'q6', text: 'Wie hieß der berüchtigte und von vielen Torhütern kritisierte offizielle Spielball der WM 2010 in Südafrika?', options: ['Tricolore', 'Teamgeist', 'Brazuca', 'Jabulani'], correctIndex: 3 },
+    { id: 'q7', text: 'Welcher französische Superstar beendete seine Karriere im WM-Finale 2006 mit einem Platzverweis nach einem Kopfstoß?', options: ['Thierry Henry', 'Franck Ribéry', 'Zinédine Zidane', 'Patrick Vieira'], correctIndex: 2 },
+    { id: 'q8', text: 'Wer ist der jüngste Torschütze in der Geschichte der Weltmeisterschaften (17 Jahre, 239 Tage alt im Jahr 1958)?', options: ['Lionel Messi', 'Kylian Mbappé', 'Pelé', 'Michael Owen'], correctIndex: 2 },
+    { id: 'q9', text: 'Welcher Torhüter gewann 2002 als bisher einziger Keeper den "Goldenen Ball" als bester Spieler des Turniers?', options: ['Gianluigi Buffon', 'Iker Casillas', 'Manuel Neuer', 'Oliver Kahn'], correctIndex: 3 },
+    { id: 'q10', text: 'Welches Land besiegte Deutschland im Finale der WM 2014 durch ein Tor in der Verlängerung mit 1:0?', options: ['Brasilien', 'Argentinien', 'Niederlande', 'Frankreich'], correctIndex: 1 },
+    { id: 'q11', text: 'Wer ist der einzige Spieler der Fußballgeschichte, der bei fünf verschiedenen Weltmeisterschaften mindestens ein Tor erzielt hat?', options: ['Lionel Messi', 'Miroslav Klose', 'Cristiano Ronaldo', 'Lothar Matthäus'], correctIndex: 2 },
+    { id: 'q12', text: 'Gegen wen verlor Brasilien 2014 im eigenen Land im Halbfinale historisch hoch mit 1:7?', options: ['Spanien', 'Italien', 'Niederlande', 'Deutschland'], correctIndex: 3 },
+    { id: 'q13', text: 'Wer war der Trainer der deutschen Nationalmannschaft beim Titelgewinn 2014 in Brasilien?', options: ['Jürgen Klinsmann', 'Franz Beckenbauer', 'Joachim Löw', 'Hansi Flick'], correctIndex: 2 },
+    { id: 'q14', text: 'Wie hieß der ursprüngliche WM-Pokal, der 1983 in Brasilien endgültig gestohlen und vermutlich eingeschmolzen wurde?', options: ['FIFA-Weltpokal', 'Coupe de Monde', 'Jules-Rimet-Trophäe', 'Stanley Cup'], correctIndex: 2 },
+    { id: 'q15', text: 'Welcher englische Spieler sicherte seinem Team 1966 im Finale gegen Deutschland das berühmte "Wembley-Tor"?', options: ['Bobby Charlton', 'Geoff Hurst', 'Gary Lineker', 'Bobby Moore'], correctIndex: 1 },
+];
+
+function quizPublicQuestions() {
+    // correctIndex bewusst NICHT mitschicken – Wertung passiert ausschließlich serverseitig.
+    return QUIZ_QUESTIONS.map(q => ({ id: q.id, text: q.text, options: q.options }));
+}
+
+// Fragenkatalog + eigener Fortschritt (welche Fragen schon beantwortet, mit welchem Ergebnis)
+app.get('/api/quiz/questions', (req, res) => {
+    const { token } = req.query;
+    const user = db.prepare('SELECT id FROM users WHERE token = ?').get(token);
+    if (!user) return res.status(403).json({ error: 'Kein Zugriff' });
+
+    const answered = db.prepare('SELECT questionId, answerIndex, correct FROM quiz_answers WHERE userId = ?').all(user.id);
+    const answeredMap = {};
+    answered.forEach(a => { answeredMap[a.questionId] = { answerIndex: a.answerIndex, correct: a.correct === 1 }; });
+
+    res.json({ questions: quizPublicQuestions(), answered: answeredMap });
+});
+
+// Startet die Zeitmessung für eine Frage. Idempotent: ein bereits gesetztes
+// openedAt wird NICHT überschrieben (verhindert Reset des Timers per Reload).
+app.post('/api/quiz/open', (req, res) => {
+    const { token, questionId } = req.body;
+    const user = db.prepare('SELECT id FROM users WHERE token = ?').get(token);
+    if (!user) return res.status(403).json({ error: 'Kein Zugriff' });
+    if (!QUIZ_QUESTIONS.find(q => q.id === questionId)) return res.status(404).json({ error: 'Frage nicht gefunden' });
+
+    const already = db.prepare('SELECT correct FROM quiz_answers WHERE userId = ? AND questionId = ?').get(user.id, questionId);
+    if (already) return res.json({ success: true, alreadyAnswered: true });
+
+    db.prepare(`INSERT INTO quiz_opens (userId, questionId, openedAt) VALUES (?, ?, ?)
+        ON CONFLICT(userId, questionId) DO NOTHING`).run(user.id, questionId, Date.now());
+    const row = db.prepare('SELECT openedAt FROM quiz_opens WHERE userId = ? AND questionId = ?').get(user.id, questionId);
+    res.json({ success: true, openedAt: row.openedAt, timeLimitMs: QUIZ_TIME_LIMIT_MS });
+});
+
+// Nimmt genau einen Antwortversuch entgegen. 403 bei Zweitversuch. Bei
+// Überschreitung des Zeitlimits wird die Antwort unabhängig vom Index als
+// falsch gewertet (Timeout).
+app.post('/api/quiz/answer', (req, res) => {
+    const { token, questionId, answerIndex } = req.body;
+    const user = db.prepare('SELECT id FROM users WHERE token = ?').get(token);
+    if (!user) return res.status(403).json({ error: 'Kein Zugriff' });
+    const q = QUIZ_QUESTIONS.find(x => x.id === questionId);
+    if (!q) return res.status(404).json({ error: 'Frage nicht gefunden' });
+
+    const already = db.prepare('SELECT correct FROM quiz_answers WHERE userId = ? AND questionId = ?').get(user.id, questionId);
+    if (already) return res.status(403).json({ error: 'Frage bereits beantwortet' });
+
+    const opened = db.prepare('SELECT openedAt FROM quiz_opens WHERE userId = ? AND questionId = ?').get(user.id, questionId);
+    if (!opened) return res.status(403).json({ error: 'Frage wurde nicht geöffnet' });
+
+    const elapsed = Date.now() - opened.openedAt;
+    const inTime = elapsed <= (QUIZ_TIME_LIMIT_MS + QUIZ_GRACE_MS);
+    const idx = Number.isInteger(answerIndex) ? answerIndex : -1;
+    const correct = (inTime && idx === q.correctIndex) ? 1 : 0;
+
+    db.prepare('INSERT INTO quiz_answers (userId, questionId, answerIndex, correct, answeredAt) VALUES (?, ?, ?, ?, ?)')
+        .run(user.id, questionId, idx, correct, Date.now());
+
+    res.json({ success: true, correct: correct === 1, correctIndex: q.correctIndex, timedOut: !inTime });
+});
+
+// Admin: Quiz-Fortschritt für einen User zurücksetzen
+app.post('/api/admin/quiz/reset', (req, res) => {
+    const { userId, adminPass } = req.body;
+    if (adminPass !== "GEHEIM123") return res.status(403).json({ error: "Falsches Admin-Passwort" });
+
+    const user = db.prepare('SELECT id FROM users WHERE id = ?').get(userId);
+    if (!user) return res.status(404).json({ error: "User nicht gefunden" });
+
+    const resetTx = db.transaction(() => {
+        db.prepare('DELETE FROM quiz_answers WHERE userId = ?').run(userId);
+        db.prepare('DELETE FROM quiz_opens WHERE userId = ?').run(userId);
+    });
+    resetTx();
+
+    res.json({ success: true });
+});
+
+// Rangliste: jeder registrierte User taucht auf, auch mit 0 beantworteten Fragen.
+app.get('/api/quiz/leaderboard', (req, res) => {
+    const rows = db.prepare(`
+        SELECT u.id, u.name,
+            COUNT(qa.questionId) AS answered,
+            COALESCE(SUM(qa.correct), 0) AS correct
+        FROM users u
+        LEFT JOIN quiz_answers qa ON qa.userId = u.id
+        GROUP BY u.id
+        ORDER BY correct DESC, answered ASC, u.name ASC
+    `).all();
+    res.json({ total: QUIZ_QUESTIONS.length, leaderboard: rows });
 });
 
 // ── WM-2026 KO-Phasen-Engine (Platzierung → Bracket-Zuordnung) ────────────────
